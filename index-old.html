@@ -1,0 +1,1646 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>پیش‌فاکتور داخلی</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+tailwind.config={darkMode:'class',theme:{extend:{fontFamily:{vazir:['Vazirmatn','sans-serif']}}}}
+</script>
+<style>
+:root{--bg:#F7F3ED;--fg:#1C1917;--card:#FFFFFF;--card-border:#E7E0D8;--muted:#78716C;--accent:#92400E;--accent-hover:#78350F;--accent-light:#FFFBEB;--input-bg:#FDFBF7;--input-border:#D6CFC7;--shadow:0 1px 3px rgba(0,0,0,.06),0 1px 2px rgba(0,0,0,.04)}
+.dark{--bg:#1C1917;--fg:#F5F0EB;--card:#292524;--card-border:#44403C;--muted:#A8A29E;--accent:#D97706;--accent-hover:#F59E0B;--accent-light:#451A03;--input-bg:#292524;--input-border:#57534E;--shadow:0 1px 3px rgba(0,0,0,.3)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Vazirmatn',sans-serif;background:var(--bg);color:var(--fg);transition:background .3s,color .3s;min-height:100vh;-webkit-tap-highlight-color:transparent}
+h1,h2,h3,h4,h5,h6{font-family:'Vazirmatn',sans-serif}
+.card{background:var(--card);border:1px solid var(--card-border);border-radius:12px;box-shadow:var(--shadow);padding:1.25rem;transition:background .3s,border-color .3s}
+.input-field{background:var(--input-bg);border:1px solid var(--input-border);border-radius:8px;padding:.5rem .75rem;width:100%;font-size:.85rem;color:var(--fg);transition:border-color .2s,box-shadow .2s;outline:none;font-family:'Vazirmatn',sans-serif;direction:rtl}
+.input-field:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(146,64,14,.12)}
+.input-field::placeholder{color:var(--muted)}
+.input-field.ltr{direction:ltr;text-align:right}
+textarea.input-field{resize:vertical;min-height:56px}
+select.input-field{cursor:pointer;appearance:auto}
+label.field-label{display:block;font-size:.7rem;font-weight:700;color:var(--muted);margin-bottom:.2rem;letter-spacing:.02em}
+.tab-btn{position:relative;padding:.6rem 1rem;font-weight:600;font-size:.85rem;color:var(--muted);border:none;background:none;cursor:pointer;transition:color .2s;font-family:'Vazirmatn',sans-serif;white-space:nowrap}
+.tab-btn:hover{color:var(--fg)}
+.tab-btn.active{color:var(--accent)}
+.tab-btn.active::after{content:'';position:absolute;bottom:0;right:0;left:0;height:3px;background:var(--accent);border-radius:3px 3px 0 0}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:.4rem;padding:.45rem .85rem;border-radius:8px;font-weight:600;font-size:.8rem;border:none;cursor:pointer;transition:all .2s;font-family:'Vazirmatn',sans-serif;min-height:36px}
+.btn-primary{background:var(--accent);color:#fff}.btn-primary:hover{background:var(--accent-hover);transform:translateY(-1px)}
+.btn-secondary{background:var(--input-bg);color:var(--fg);border:1px solid var(--input-border)}.btn-secondary:hover{border-color:var(--accent)}
+.btn-danger{background:#DC2626;color:#fff}.btn-danger:hover{opacity:.9}
+.btn-sm{padding:.3rem .6rem;font-size:.75rem;min-height:32px}
+.toast-container{position:fixed;top:1rem;left:1rem;z-index:9999;display:flex;flex-direction:column;gap:.5rem;pointer-events:none}
+.toast{padding:.65rem 1rem;border-radius:10px;font-size:.83rem;font-weight:500;box-shadow:0 10px 25px rgba(0,0,0,.15);animation:slideIn .3s ease;display:flex;align-items:center;gap:.5rem;max-width:340px;pointer-events:auto;font-family:'Vazirmatn',sans-serif}
+.toast-success{background:#059669;color:#fff}.toast-error{background:#DC2626;color:#fff}.toast-info{background:#0284C7;color:#fff}
+@keyframes slideIn{from{transform:translateX(-100%);opacity:0}to{transform:translateX(0);opacity:1}}
+@keyframes slideOut{from{transform:translateX(0);opacity:1}to{transform:translateX(-100%);opacity:0}}
+.invoice-preview{background:#fff;color:#1a1a1a;font-family:'Vazirmatn',sans-serif;font-size:10.5px;line-height:1.7;width:297mm;max-width:100%;margin:0 auto;padding:8mm 6mm;direction:rtl;unicode-bidi:embed;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;font-variant-ligatures: common-ligatures;}
+.invoice-preview table{width:100%;border-collapse:collapse}
+.invoice-preview th, .invoice-preview td {
+  border: 1px solid #444;
+  padding: 6px 7px; /* کمی افزایش پدینگ برای فضای بهتر */
+  text-align: right;
+  font-size: 10px;
+  vertical-align: middle !important;
+  line-height: 1.4; /* تنظیم دقیق ارتفاع خط */
+}
+.invoice-preview th{background:#f3f0eb;font-weight:700;font-size:9.5px;letter-spacing: normal}
+.invoice-preview .inv-title{text-align:center;font-size:20px;font-weight:900;letter-spacing:normal;margin-bottom:8px;border-bottom:3px double #444;padding-bottom:6px;direction:rtl;unicode-bidi:embed;font-variant-ligatures: common-ligatures;}
+.invoice-preview .section-header{background:#ece7df;font-weight:700;font-size:9.5px;padding:3px 7px;border:1px solid #444}
+.invoice-preview .label{font-weight:600;white-space:nowrap;width:1%;padding-left:8px}
+.invoice-preview .party-box{border:2px solid #444;border-radius:6px;overflow:hidden}
+.invoice-preview .party-box-header{background:#ece7df;font-weight:700;font-size:10.5px;padding:4px 8px;border-bottom:1px solid #444}
+.invoice-preview .party-box-body{padding:6px 8px}
+.invoice-preview .party-row{display:flex;gap:4px;margin-bottom:2px}
+.invoice-preview .party-row .label{font-weight:600;white-space:nowrap;min-width:80px}
+.invoice-preview .sign-area{margin-top:25px;display:flex;justify-content:space-between}
+.sig-drop-zone{border:2px dashed var(--input-border);border-radius:10px;padding:1.25rem;text-align:center;cursor:pointer;transition:border-color .2s,background .2s}
+.sig-drop-zone:hover,.sig-drop-zone.drag-over{border-color:var(--accent);background:var(--accent-light)}
+.chat-msg{padding:.6rem .85rem;border-radius:12px;max-width:90%;font-size:.82rem;line-height:1.6;word-break:break-word}
+.chat-user{background:var(--accent);color:#fff;border-bottom-left-radius:4px;align-self:flex-start;margin-right:auto}
+.chat-ai{background:var(--card);border:1px solid var(--card-border);color:var(--fg);border-bottom-right-radius:4px}
+.dark .chat-ai{background:#334155;border-color:#475569}
+.pulse-dot{width:8px;height:8px;border-radius:50%;background:var(--accent);animation:pulse 1.5s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:.3;transform:scale(.8)}50%{opacity:1;transform:scale(1.2)}}
+.ai-panel{transition:transform .35s cubic-bezier(.4,0,.2,1),opacity .25s ease;will-change:transform}
+.ai-panel.closed{transform:translateX(100%);opacity:0;pointer-events:none}
+.ai-panel.open{transform:translateX(0);opacity:1;pointer-events:auto}
+.mic-btn{position:relative}.mic-btn.recording{background:#DC2626!important;color:#fff!important}
+.mic-btn.recording::after{content:'';position:absolute;inset:-4px;border-radius:50%;border:2px solid #DC2626;animation:micPulse 1s ease-in-out infinite}
+@keyframes micPulse{0%,100%{opacity:.3;transform:scale(.95)}50%{opacity:1;transform:scale(1.05)}}
+::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--input-border);border-radius:3px}
+.total-row{display:flex;justify-content:space-between;align-items:center;padding:.5rem .75rem;border-radius:8px;font-size:.85rem}
+.total-row.highlight{background:var(--accent);color:#fff;font-weight:800;font-size:1rem}
+.toggle-switch{position:relative;width:40px;height:22px;cursor:pointer;display:inline-block;flex-shrink:0}
+.toggle-switch input{opacity:0;width:0;height:0;position:absolute}
+.toggle-slider{position:absolute;inset:0;background:var(--input-border);border-radius:11px;transition:.3s}
+.toggle-slider::before{content:'';position:absolute;height:16px;width:16px;right:3px;bottom:3px;background:#fff;border-radius:50%;transition:.3s}
+.toggle-switch input:checked+.toggle-slider{background:var(--accent)}
+.toggle-switch input:checked+.toggle-slider::before{transform:translateX(-18px)}
+
+/* === Mobile Responsive === */
+@media(max-width:639px){
+  .card{padding:.875rem;border-radius:10px}
+  .input-field{font-size:.82rem;padding:.45rem .6rem}
+  .tab-btn{padding:.5rem .7rem;font-size:.78rem}
+  .btn{min-height:38px}
+  .btn-sm{min-height:34px}
+  /* Items table → card layout */
+  .items-responsive thead{display:none}
+  .items-responsive table{min-width:0!important;width:100%}
+  .items-responsive tbody tr{display:block;margin-bottom:10px;border:1px solid var(--card-border);border-radius:10px;padding:10px 10px 6px;background:var(--input-bg);position:relative}
+  .items-responsive tbody td{display:flex;align-items:center;gap:6px;padding:4px 0;border:none!important;min-height:34px}
+  .items-responsive tbody td::before{content:attr(data-label);font-weight:700;font-size:.65rem;color:var(--muted);min-width:68px;flex-shrink:0}
+  .items-responsive tbody td:first-child{position:absolute;top:8px;right:10px;padding:0;border:none!important}
+  .items-responsive tbody td:first-child::before{display:none}
+  .items-responsive tbody td:last-child{position:absolute;top:8px;left:10px;padding:0;border:none!important}
+  .items-responsive tbody td:last-child::before{display:none}
+  .items-responsive tbody tr{padding-top:32px}
+  .items-responsive tbody td .input-field{flex:1;min-width:0}
+  .items-responsive tbody td:nth-child(10){font-weight:700;font-size:.78rem}
+  .items-responsive tbody td:nth-child(10)::before{font-weight:700}
+  /* Invoice preview mobile */
+  .invoice-preview{padding:4mm 3mm;font-size:9.5px}
+  .invoice-preview th,.invoice-preview td{font-size:9px;padding:3px 5px}
+  .invoice-preview .inv-title{font-size:16px}
+  .invoice-preview .party-row .label{min-width:60px;font-size:9px}
+  .invoice-preview .party-box-header{font-size:9.5px}
+  .invoice-preview .sign-area{flex-direction:column;gap:15px}
+  .total-row{font-size:.8rem;padding:.4rem .6rem}
+  .total-row.highlight{font-size:.9rem}
+}
+@media(max-width:380px){
+  .card{padding:.75rem}
+  .items-responsive tbody td::before{min-width:58px;font-size:.6rem}
+}
+
+@media print{
+  @page { size: A4 landscape; margin: 6mm; } /* Added for landscape */
+  body>*:not(#print-area){display:none!important}
+  #print-area{display:block!important;position:static!important; width: 100%; }
+  .invoice-preview{
+    box-shadow:none!important;
+    margin:0!important;
+    padding:0!important; /* Changed from 6mm to 0 */
+    width: 100%!important; /* Added */
+    max-width: 100%!important; /* Added */
+  }
+}
+</style>
+</head>
+<body class="min-h-screen">
+
+<header class="sticky top-0 z-30 border-b" style="background:var(--card);border-color:var(--card-border)">
+  <div class="max-w-[1600px] mx-auto px-3 sm:px-4 py-2.5 flex items-center justify-between">
+    <div class="flex items-center gap-2 sm:gap-3">
+      <div class="w-8 h-8 sm:w-9 sm:h-9 rounded-lg flex items-center justify-center" style="background:var(--accent)">
+        <i class="fa-solid fa-file-invoice text-white text-xs sm:text-sm"></i>
+      </div>
+      <div>
+        <h1 class="text-sm sm:text-base font-extrabold leading-tight" style="color:var(--fg)">پیش‌فاکتور داخلی</h1>
+        <p class="text-[9px] sm:text-[10px] hidden xs:block" style="color:var(--muted)">صدور پیش‌فاکتور حرفه‌ای برای بازار ایران</p>
+      </div>
+    </div>
+    <div class="flex items-center gap-1 sm:gap-1.5">
+      <button onclick="newInvoice()" class="btn btn-primary btn-sm"><i class="fa-solid fa-plus"></i> <span class="hidden sm:inline">جدید</span></button>
+      <button onclick="saveCurrentInvoice()" class="btn btn-secondary btn-sm"><i class="fa-solid fa-floppy-disk"></i> <span class="hidden sm:inline">ذخیره</span></button>
+      <button onclick="toggleDark()" class="btn btn-secondary btn-sm" id="darkToggle" title="حالت تاریک"><i class="fa-solid fa-moon"></i></button>
+      <button onclick="toggleAIPanel()" class="btn btn-secondary btn-sm" title="دستیار هوشمند"><i class="fa-solid fa-robot"></i> <span class="hidden sm:inline">هوشمند</span></button>
+    </div>
+  </div>
+  <div class="max-w-[1600px] mx-auto px-3 sm:px-4 flex overflow-x-auto" style="border-top:1px solid var(--card-border);-webkit-overflow-scrolling:touch">
+    <button class="tab-btn active" onclick="switchTab('form')"><i class="fa-solid fa-pen-to-square ml-1"></i>فرم</button>
+    <button class="tab-btn" onclick="switchTab('preview')"><i class="fa-solid fa-eye ml-1"></i>پیش‌نمایش</button>
+    <button class="tab-btn" onclick="switchTab('history')"><i class="fa-solid fa-clock-rotate-left ml-1"></i>تاریخچه</button>
+  </div>
+</header>
+
+<div class="flex max-w-[1600px] mx-auto" style="min-height:calc(100vh - 88px)">
+<main class="flex-1 px-3 sm:px-4 py-4 sm:py-5 overflow-y-auto" id="main-content">
+
+<!-- فرم -->
+<div id="tab-form" class="tab-content">
+  <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-3 sm:mb-4">
+    <!-- فروشنده -->
+    <div class="card">
+      <h3 class="font-extrabold text-sm mb-3 flex items-center gap-2" style="color:var(--accent)"><i class="fa-solid fa-building"></i> اطلاعات فروشنده</h3>
+      <div class="space-y-2.5">
+        <div><label class="field-label">نام شرکت / فروشگاه</label><input id="f-seller-name" class="input-field" placeholder="نام شرکت یا کسب‌وکار شما"></div>
+        <div><label class="field-label">آدرس</label><textarea id="f-seller-address" class="input-field" rows="2" placeholder="آدرس کامل"></textarea></div>
+        <div class="grid grid-cols-2 gap-2.5">
+          <div><label class="field-label">شماره ثبت</label><input id="f-seller-regNo" class="input-field ltr" placeholder="مثلاً ۱۲۳۴۵"></div>
+          <div><label class="field-label">کد اقتصادی</label><input id="f-seller-economicCode" class="input-field ltr" placeholder="کد اقتصادی"></div>
+        </div>
+        <div class="grid grid-cols-2 gap-2.5">
+          <div><label class="field-label">شناسه ملی</label><input id="f-seller-nationalId" class="input-field ltr" placeholder="شناسه ملی ۱۱ رقمی"></div>
+          <div><label class="field-label">تلفن</label><input id="f-seller-tel" class="input-field ltr" placeholder="۰۲۱-۱۲۳۴۵۶۷۸"></div>
+        </div>
+        <div class="grid grid-cols-2 gap-2.5">
+          <div><label class="field-label">فکس</label><input id="f-seller-fax" class="input-field ltr" placeholder="شماره فکس"></div>
+          <div>
+            <label class="field-label">لوگوی شرکت</label>
+            <div class="flex gap-2 items-center">
+              <button onclick="document.getElementById('logo-file-input').click()" class="btn btn-secondary btn-sm flex-shrink-0"><i class="fa-solid fa-image"></i> انتخاب</button>
+              <span id="logo-filename" class="text-xs truncate" style="color:var(--muted)">فایلی انتخاب نشده</span>
+              <button id="logo-remove-btn" onclick="removeLogo(event)" class="btn btn-danger btn-sm hidden flex-shrink-0"><i class="fa-solid fa-trash-can"></i></button>
+            </div>
+            <input type="file" id="logo-file-input" accept="image/*" class="hidden" onchange="handleLogoFile(event)">
+          </div>
+          <div class="flex items-center gap-2 flex-wrap mt-2">
+            <label class="toggle-switch">
+              <input type="checkbox" id="f-show-seller-name-logo" onchange="readForm()">
+              <span class="toggle-slider"></span>
+            </label>
+            <span class="text-sm font-semibold">نمایش نام شرکت در کنار لوگو</span>
+          </div>
+        </div>
+        <button onclick="saveDefaultSeller()" class="btn btn-secondary btn-sm"><i class="fa-solid fa-thumbtack"></i> ذخیره به‌عنوان پیش‌فرض</button>
+      </div>
+    </div>
+    <!-- خریدار -->
+    <div class="card">
+      <h3 class="font-extrabold text-sm mb-3 flex items-center gap-2" style="color:var(--accent)"><i class="fa-solid fa-user-tie"></i> اطلاعات خریدار</h3>
+      <div class="space-y-2.5">
+        <div><label class="field-label">نام شرکت / خریدار</label><input id="f-buyer-name" class="input-field" placeholder="نام شرکت یا شخص خریدار"></div>
+        <div><label class="field-label">آدرس</label><textarea id="f-buyer-address" class="input-field" rows="2" placeholder="آدرس کامل"></textarea></div>
+        <div class="grid grid-cols-2 gap-2.5">
+          <div><label class="field-label">شماره ثبت</label><input id="f-buyer-regNo" class="input-field ltr" placeholder="شماره ثبت"></div>
+          <div><label class="field-label">کد اقتصادی</label><input id="f-buyer-economicCode" class="input-field ltr" placeholder="کد اقتصادی"></div>
+        </div>
+        <div class="grid grid-cols-2 gap-2.5">
+          <div><label class="field-label">شناسه ملی</label><input id="f-buyer-nationalId" class="input-field ltr" placeholder="شناسه ملی"></div>
+          <div><label class="field-label">کد پستی</label><input id="f-buyer-postalCode" class="input-field ltr" placeholder="کد پستی ۱۰ رقمی"></div>
+        </div>
+        <div><label class="field-label">تلفن</label><input id="f-buyer-tel" class="input-field ltr" placeholder="شماره تماس"></div>
+      </div>
+    </div>
+  </div>
+
+      <!-- جزئیات پیش‌فاکتور -->
+  <div class="card mb-3 sm:mb-4">
+    <h3 class="font-extrabold text-sm mb-3 flex items-center gap-2" style="color:var(--accent)"><i class="fa-solid fa-hashtag"></i> جزئیات پیش‌فاکتور</h3>
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div>
+        <label class="field-label">شماره پیش‌فاکتور</label>
+        <input id="f-invoiceNumber" class="input-field ltr" placeholder="PF-1403-001">
+      </div>
+      <div>
+        <label class="field-label">تاریخ و ساعت صدور</label>
+        <div class="flex gap-1.5">
+          <input id="f-invoiceDate" class="input-field ltr flex-1 min-w-[130px]">
+          <input id="f-invoiceTime" type="time" class="input-field ltr w-28 flex-shrink-0">
+        </div>
+      </div>
+      <div>
+        <label class="field-label">تاریخ و ساعت اعتبار</label>
+        <div class="flex gap-1.5">
+          <input id="f-validityDate" class="input-field ltr flex-1 min-w-[130px]">
+          <input id="f-validityTime" type="time" class="input-field ltr w-28 flex-shrink-0">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- شرح و توضیحات -->
+  <div class="card mb-3 sm:mb-4">
+    <h3 class="font-extrabold text-sm mb-3 flex items-center gap-2" style="color:var(--accent)"><i class="fa-solid fa-align-right"></i> شرح و توضیحات</h3>
+    <div><textarea id="f-description" class="input-field" rows="3" placeholder="شرح مختصری از محموله، قرارداد مرجع، یا توضیحات تکمیلی درباره این پیش‌فاکتور..."></textarea></div>
+  </div>
+
+  <!-- شرایط پرداخت و تحویل -->
+  <div class="card mb-3 sm:mb-4" style="border-right:3px solid var(--accent)">
+    <h3 class="font-extrabold text-sm mb-3 flex items-center gap-2" style="color:var(--accent)"><i class="fa-solid fa-credit-card"></i> شرایط پرداخت و تحویل</h3>
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mb-2.5">
+      <div>
+        <label class="field-label">شرایط پرداخت</label>
+        <textarea id="f-paymentTerms" class="input-field" rows="3" placeholder="مثلاً ۵۰٪ پیش‌پرداخت نقدی&#10;۵۰٪ پس از تحویل کالا"></textarea>
+      </div>
+      <div>
+        <label class="field-label">شرایط تحویل</label>
+        <textarea id="f-deliveryTerms" class="input-field" rows="3" placeholder="مثلاً تحویل در انبار فروشنده&#10;ظرف ۱۵ روز کاری پس از تایید سفارش"></textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- اقلام -->
+  <div class="card mb-3 sm:mb-4">
+    <div class="flex items-center justify-between mb-3">
+      <h3 class="font-extrabold text-sm flex items-center gap-2" style="color:var(--accent)"><i class="fa-solid fa-table-list"></i> اقلام کالا/خدمات</h3>
+      <button onclick="addItem()" class="btn btn-primary btn-sm"><i class="fa-solid fa-plus"></i> افزودن ردیف</button>
+    </div>
+    <div class="items-responsive overflow-x-auto">
+      <table class="w-full text-sm" style="min-width:1000px">
+        <thead>
+          <tr style="background:var(--accent-light);border-bottom:2px solid var(--card-border)">
+            <th class="p-2 text-center text-xs font-bold" style="color:var(--accent);width:30px">ردیف</th>
+            <th class="p-2 text-right text-xs font-bold" style="color:var(--accent)">شرح کالا/خدمات</th>
+            <th class="p-2 text-center text-xs font-bold" style="color:var(--accent);width:80px">واحد</th>
+            <th class="p-2 text-center text-xs font-bold" style="color:var(--accent);width:70px">مقدار</th>
+            <th class="p-2 text-center text-xs font-bold" style="color:var(--accent);width:65px">تلورانس (%)</th>
+            <th class="p-2 text-center text-xs font-bold" style="color:var(--accent);width:70px">تلورانس (مقدار)</th>
+            <th class="p-2 text-center text-xs font-bold" style="color:var(--accent);width:110px">قیمت واحد</th>
+            <th class="p-2 text-center text-xs font-bold" style="color:var(--accent);width:85px">تخفیف (%)</th>
+            <th class="p-2 text-center text-xs font-bold" style="color:var(--accent);width:95px">تخفیف (مبلغ)</th>
+            <th class="p-2 text-center text-xs font-bold" style="color:var(--accent);width:115px">مبلغ نهایی</th>
+            <th class="p-2 text-center text-xs font-bold" style="color:var(--accent);width:30px"></th>
+          </tr>
+        </thead>
+        <tbody id="items-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- جمع‌بندی -->
+  <div class="card mb-3 sm:mb-4">
+    <h3 class="font-extrabold text-sm mb-3 flex items-center gap-2" style="color:var(--accent)"><i class="fa-solid fa-calculator"></i> جمع‌بندی</h3>
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div class="space-y-2">
+        <div class="total-row" style="background:var(--input-bg)">
+          <span>جمع کل اقلام (قبل از تخفیف)</span>
+          <span id="subtotalBeforeDiscDisplay" class="font-bold" style="color:var(--accent)">۰</span>
+        </div>
+        <div class="flex items-center gap-2 flex-wrap">
+          <label class="text-sm font-semibold whitespace-nowrap">تخفیف کلی (درصد)</label>
+          <input id="f-discountPercent" type="number" min="0" max="100" step="0.1" class="input-field ltr" style="width:65px" value="0" oninput="recalculate()">
+          <span class="text-sm">درصد</span>
+          <span class="text-sm font-bold" style="color:#DC2626">=</span>
+          <span id="discountAmountDisplay" class="text-sm font-bold" style="color:#DC2626">۰</span>
+        </div>
+        <div class="total-row" style="background:var(--input-bg)">
+          <span>مبلغ پس از تخفیف کلی</span>
+          <span id="afterDiscountDisplay" class="font-bold">۰</span>
+        </div>
+
+        <!-- مالیات -->
+        <div class="p-3 rounded-lg" style="background:var(--input-bg)">
+          <div class="flex items-center justify-between mb-2">
+            <div class="flex items-center gap-2">
+              <label class="toggle-switch">
+                <input type="checkbox" id="f-vatEnabled" onchange="recalculate()" checked>
+                <span class="toggle-slider"></span>
+              </label>
+              <span class="text-sm font-semibold">مالیات بر ارزش افزوده</span>
+            </div>
+          </div>
+          <div class="flex items-center gap-2 mb-2">
+            <label class="text-xs whitespace-nowrap">درصد:</label>
+            <input id="f-vatPercent" type="number" min="0" max="100" step="0.1" class="input-field ltr" style="width:65px" value="10" oninput="recalculate()">
+            <span class="text-xs">٪</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <label class="toggle-switch">
+              <input type="checkbox" id="f-priceIncludesVat" onchange="recalculate()">
+              <span class="toggle-slider"></span>
+            </label>
+            <span class="text-xs">قیمت‌ها شامل مالیات است</span>
+          </div>
+          <div class="mt-2 flex justify-between">
+            <span class="text-xs font-semibold">مبلغ مالیات:</span>
+            <span id="vatDisplay" class="text-sm font-bold" style="color:#7C3AED">۰</span>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2 flex-wrap">
+          <label class="text-sm font-semibold whitespace-nowrap">سایر هزینه‌ها</label>
+          <input id="f-otherCharges" type="number" min="0" class="input-field ltr" style="width:120px" value="0" oninput="recalculate()">
+          <span class="text-sm" id="other-charges-currency">ریال</span>
+        </div>
+        <div class="total-row highlight">
+          <span>جمع کل</span>
+          <span id="grandTotalDisplay">۰</span>
+        </div>
+      </div>
+      <div class="space-y-3">
+        <div>
+          <label class="field-label">واحد پول</label>
+          <select id="f-currency" class="input-field" onchange="readForm()">
+            <option value="IRR">ریال ایران</option>
+            <option value="USD">دلار آمریکا</option>
+            <option value="EUR">یورو</option>
+            <option value="GBP">پوند انگلیس</option>
+            <option value="AED">درهم امارات</option>
+            <option value="TRY">لیر ترکیه</option>
+          </select>
+        </div>
+        <div class="p-3 rounded-lg" style="background:var(--input-bg)">
+          <label class="field-label">مبلغ به حروف</label>
+          <p id="totalAmountWords" class="text-sm font-bold mt-1" style="color:var(--accent)">صفر ریال</p>
+        </div>
+        <div class="flex items-center gap-3 p-3 rounded-lg" style="background:var(--input-bg)">
+          <label class="toggle-switch">
+            <input type="checkbox" id="f-showToman" onchange="recalculate()" checked>
+            <span class="toggle-slider"></span>
+          </label>
+          <div>
+            <p class="text-sm font-semibold">نمایش معادل تومانی</p>
+            <p id="tomanDisplay" class="text-xs" style="color:var(--muted)">۰ تومان</p>
+          </div>
+        </div>
+        <div class="p-3 rounded-lg" style="background:var(--input-bg)">
+          <div class="flex justify-between">
+            <span class="text-xs font-semibold">جمع تخفیف‌های اقلام:</span>
+            <span id="totalItemsDiscDisplay" class="text-sm font-bold" style="color:#DC2626">۰</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- امضا و مهر -->
+  <div class="card">
+    <h3 class="font-extrabold text-sm mb-3 flex items-center gap-2" style="color:var(--accent)"><i class="fa-solid fa-stamp"></i> امضا و مهر</h3>
+    <div>
+      <label class="field-label">تصویر امضا / مهر</label>
+      <div id="sig-drop-zone" class="sig-drop-zone" onclick="document.getElementById('sig-file-input').click()"
+           ondragover="event.preventDefault();this.classList.add('drag-over')"
+           ondragleave="this.classList.remove('drag-over')"
+           ondrop="handleSigDrop(event)">
+        <div id="sig-placeholder">
+          <i class="fa-solid fa-cloud-arrow-up text-2xl mb-2" style="color:var(--muted)"></i>
+          <p class="text-sm font-semibold" style="color:var(--muted)">کلیک کنید یا تصویر را بکشید و رها کنید</p>
+          <p class="text-xs mt-1" style="color:var(--input-border)">PNG یا JPG</p>
+        </div>
+        <div id="sig-preview-wrap" class="hidden">
+          <img id="sig-preview-img" class="max-h-28 mx-auto rounded" alt="پیش‌نمایش امضا">
+          <p class="text-xs mt-2" style="color:var(--muted)">برای جایگزینی کلیک کنید</p>
+        </div>
+      </div>
+      <input type="file" id="sig-file-input" accept="image/*" class="hidden" onchange="handleSigFile(event)">
+      <button id="sig-remove-btn" onclick="removeSignature(event)" class="btn btn-danger btn-sm mt-2 hidden"><i class="fa-solid fa-trash-can"></i> حذف امضا</button>
+    </div>
+  </div>
+</div>
+
+<!-- پیش‌نمایش -->
+<div id="tab-preview" class="tab-content hidden">
+  <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+    <h2 class="font-extrabold text-lg">پیش‌نمایش پیش‌فاکتور</h2>
+    <div class="flex gap-2">
+      <button onclick="printInvoice()" class="btn btn-secondary btn-sm"><i class="fa-solid fa-print"></i> چاپ</button>
+      <button onclick="exportImage()" class="btn btn-primary btn-sm"><i class="fa-solid fa-file-image"></i> دانلود تصویر</button>
+      <button onclick="exportPDF()" class="btn btn-secondary btn-sm"><i class="fa-solid fa-file-pdf"></i> دانلود PDF</button>
+    </div>
+  </div>
+  <div class="overflow-x-auto rounded-lg" style="-webkit-overflow-scrolling:touch">
+    <div id="print-area" class="invoice-preview shadow-2xl rounded-lg" dir="rtl"></div>
+  </div>
+</div>
+
+<!-- تاریخچه -->
+<div id="tab-history" class="tab-content hidden">
+  <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+    <h2 class="font-extrabold text-lg">پیش‌فاکتورهای ذخیره‌شده</h2>
+    <div class="flex gap-2">
+      <button onclick="exportBackup()" class="btn btn-secondary btn-sm"><i class="fa-solid fa-download"></i> خروجی</button>
+      <label class="btn btn-secondary btn-sm cursor-pointer"><i class="fa-solid fa-upload"></i> ورودی<input type="file" accept=".json" onchange="importBackup(event)" class="hidden"></label>
+    </div>
+  </div>
+  <div class="mb-4"><input id="historySearch" class="input-field" placeholder="جستجو بر اساس شماره یا نام خریدار..." oninput="renderHistory()"></div>
+  <div id="history-list" class="space-y-3"></div>
+</div>
+</main>
+
+<!-- پنل هوشمند (فقط دسکتاپ) -->
+<aside id="ai-panel" class="ai-panel closed w-[370px] flex-shrink-0 border-r hidden lg:flex flex-col" style="background:var(--card);border-color:var(--card-border);height:calc(100vh - 88px);position:sticky;top:88px">
+  <div class="p-3 border-b flex items-center justify-between" style="border-color:var(--card-border)">
+    <div class="flex items-center gap-2">
+      <div class="w-7 h-7 rounded-lg flex items-center justify-center" style="background:var(--accent)"><i class="fa-solid fa-robot text-white text-xs"></i></div>
+      <h3 class="font-extrabold text-sm">دستیار هوشمند</h3>
+    </div>
+    <button onclick="toggleAIPanel()" class="btn btn-secondary btn-sm"><i class="fa-solid fa-xmark"></i></button>
+  </div>
+  <div class="p-3 border-b" style="border-color:var(--card-border)">
+    <button onclick="toggleAISettings()" class="flex items-center justify-between w-full text-left">
+      <span class="text-xs font-bold uppercase tracking-wider" style="color:var(--muted)">تنظیمات</span>
+      <i id="ai-settings-chevron" class="fa-solid fa-chevron-down text-xs" style="color:var(--muted);transition:transform .2s"></i>
+    </button>
+    <div id="ai-settings-body" class="mt-2.5 space-y-2.5 hidden">
+      <div>
+        <label class="field-label">کلید API اپن‌روتر</label>
+        <div class="flex gap-1.5">
+          <input id="ai-apikey" type="password" class="input-field" placeholder="sk-or-..." oninput="saveApiKey()">
+          <button onclick="toggleKeyVis()" class="btn btn-secondary btn-sm flex-shrink-0"><i class="fa-solid fa-eye"></i></button>
+        </div>
+        <p class="text-[10px] mt-1" style="color:var(--muted)">کلید فقط در مرورگر شما ذخیره می‌شود.</p>
+      </div>
+      <div>
+        <label class="field-label">مدل</label>
+        <select id="ai-model" class="input-field" onchange="saveModelChoice()">
+          <option value="deepseek/deepseek-chat">DeepSeek Chat</option>
+          <option value="deepseek/deepseek-reasoner">DeepSeek Reasoner</option>
+        </select>
+      </div>
+      <div class="p-2 rounded-lg text-[10px]" style="background:#FEF3C7;color:#92400E;border:1px solid #F59E0B">
+        <i class="fa-solid fa-triangle-exclamation ml-1"></i> کلید API مستقیماً به اپن‌روتر ارسال می‌شود.
+      </div>
+    </div>
+  </div>
+  <div id="chat-messages" class="flex-1 overflow-y-auto p-3 space-y-3" style="min-height:0">
+    <div class="chat-msg chat-ai">
+      <p class="font-bold text-xs mb-1" style="color:var(--accent)">دستیار هوشمند</p>
+      <p>سلام! من می‌توانم به شما در تکمیل پیش‌فاکتور کمک کنم:</p>
+      <ul class="mt-1.5 space-y-1 text-xs opacity-80 list-disc mr-4">
+        <li>«خریدار شرکت آسام با شناسه ملی ۱۰۴۲...»</li>
+        <li>«۵۰۰ کیلو برنج، قیمت واحد ۸۰۰۰۰»</li>
+        <li>«تخفیف ۵ درصد بده»</li>
+        <li>«مالیات ۹ درصد، قیمت‌ها شامل مالیات»</li>
+      </ul>
+    </div>
+  </div>
+  <div id="ai-apply-area" class="px-3 py-2 border-t hidden" style="border-color:var(--card-border);background:var(--accent-light)">
+    <button onclick="applyAIChanges()" class="btn btn-primary w-full justify-center text-sm"><i class="fa-solid fa-check-circle"></i> اعمال تغییرات هوشمند</button>
+  </div>
+  <div class="p-3 border-t" style="border-color:var(--card-border)">
+    <div class="flex gap-2">
+      <button id="mic-btn-desktop" onclick="toggleVoiceRecording('desktop')" class="btn btn-secondary flex-shrink-0 mic-btn" title="ورودی صوتی"><i class="fa-solid fa-microphone"></i></button>
+      <input id="chat-input" class="input-field flex-1" placeholder="پیام خود را بنویسید..." onkeydown="if(event.key==='Enter')sendChat()">
+      <button onclick="sendChat()" class="btn btn-primary flex-shrink-0"><i class="fa-solid fa-paper-plane"></i></button>
+    </div>
+    <div id="voice-status-desktop" class="hidden mt-2 text-xs text-center p-2 rounded-lg" style="background:#FEE2E2;color:#991B1B">
+      <i class="fa-solid fa-circle text-red-500 animate-pulse ml-1"></i> در حال ضبط...
+    </div>
+  </div>
+</aside>
+</div>
+
+<!-- اورلی موبایل هوشمند -->
+<div id="ai-mobile-overlay" class="fixed inset-0 z-50 hidden" style="background:rgba(0,0,0,.5)">
+  <div class="absolute left-0 top-0 bottom-0 w-full max-w-[400px] flex flex-col" style="background:var(--card)">
+    <div class="p-3 border-b flex items-center justify-between" style="border-color:var(--card-border)">
+      <div class="flex items-center gap-2">
+        <div class="w-7 h-7 rounded-lg flex items-center justify-center" style="background:var(--accent)"><i class="fa-solid fa-robot text-white text-xs"></i></div>
+        <h3 class="font-extrabold text-sm">دستیار هوشمند</h3>
+      </div>
+      <button onclick="closeMobileAI()" class="btn btn-secondary btn-sm"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <!-- تنظیمات موبایل -->
+    <div class="p-3 border-b" style="border-color:var(--card-border)">
+      <button onclick="toggleMobileAISettings()" class="flex items-center justify-between w-full text-left">
+        <span class="text-xs font-bold uppercase tracking-wider" style="color:var(--muted)">تنظیمات</span>
+        <i id="mobile-ai-settings-chevron" class="fa-solid fa-chevron-down text-xs" style="color:var(--muted);transition:transform .2s"></i>
+      </button>
+      <div id="mobile-ai-settings-body" class="mt-2.5 space-y-2.5 hidden">
+        <div>
+          <label class="field-label">کلید API اپن‌روتر</label>
+          <div class="flex gap-1.5">
+            <input id="mobile-ai-apikey" type="password" class="input-field" placeholder="sk-or-..." oninput="document.getElementById('ai-apikey').value=this.value;saveApiKey()">
+            <button onclick="const i=document.getElementById('mobile-ai-apikey');i.type=i.type==='password'?'text':'password'" class="btn btn-secondary btn-sm flex-shrink-0"><i class="fa-solid fa-eye"></i></button>
+          </div>
+        </div>
+        <div>
+          <label class="field-label">مدل</label>
+          <select id="mobile-ai-model" class="input-field" onchange="document.getElementById('ai-model').value=this.value;saveModelChoice()">
+            <option value="deepseek/deepseek-chat">DeepSeek Chat</option>
+            <option value="deepseek/deepseek-reasoner">DeepSeek Reasoner</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div id="mobile-chat-messages" class="flex-1 overflow-y-auto p-3 space-y-3"></div>
+    <div id="mobile-ai-apply-area" class="px-3 py-2 border-t hidden" style="border-color:var(--card-border);background:var(--accent-light)">
+      <button onclick="applyAIChanges();closeMobileAI()" class="btn btn-primary w-full justify-center text-sm"><i class="fa-solid fa-check-circle"></i> اعمال تغییرات</button>
+    </div>
+    <div class="p-3 border-t" style="border-color:var(--card-border)">
+      <div class="flex gap-2">
+        <button id="mic-btn-mobile" onclick="toggleVoiceRecording('mobile')" class="btn btn-secondary flex-shrink-0 mic-btn"><i class="fa-solid fa-microphone"></i></button>
+        <input id="mobile-chat-input" class="input-field flex-1" placeholder="پیام..." onkeydown="if(event.key==='Enter')sendChatMobile()">
+        <button onclick="sendChatMobile()" class="btn btn-primary flex-shrink-0"><i class="fa-solid fa-paper-plane"></i></button>
+      </div>
+      <div id="voice-status-mobile" class="hidden mt-2 text-xs text-center p-2 rounded-lg" style="background:#FEE2E2;color:#991B1B">
+        <i class="fa-solid fa-circle text-red-500 animate-pulse ml-1"></i> در حال ضبط...
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- توست -->
+<div id="toast-container" class="toast-container"></div>
+
+<!-- مودال حذف -->
+<div id="delete-modal" class="fixed inset-0 z-50 flex items-center justify-center hidden" style="background:rgba(0,0,0,.5)">
+  <div class="card max-w-sm mx-4">
+    <h3 class="font-extrabold mb-2">تایید حذف</h3>
+    <p class="text-sm mb-4" style="color:var(--muted)">آیا از حذف این پیش‌فاکتور اطمینان دارید؟</p>
+    <div class="flex gap-2 justify-end">
+      <button onclick="closeDeleteModal()" class="btn btn-secondary btn-sm">انصراف</button>
+      <button id="confirm-delete-btn" class="btn btn-danger btn-sm">حذف</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// === واحدها ===
+const unitOptions=['عدد','کیلوگرم','تن','متر','متر مربع','متر مکعب','لیتر','کارتن','بسته','رول','دستگاه','جفت','ساعت','خدمت','پروژه','کیلومتر','تن معدنی'];
+
+// === ارزها ===
+const currencySymbols = {
+  'IRR': 'ریال',
+  'USD': 'دلار',
+  'EUR': 'یورو',
+  'GBP': 'پوند',
+  'AED': 'درهم',
+  'TRY': 'لیر'
+};
+
+// === پیش‌فرض ===
+const defaultInvoice={
+  seller:{name:'',address:'',regNo:'',economicCode:'',nationalId:'',tel:'',fax:'',logoImage:'',logoColor:''},
+  buyer:{name:'',address:'',regNo:'',economicCode:'',nationalId:'',postalCode:'',tel:''},
+  invoiceNumber:'',invoiceDate:'',invoiceTime:'',validityDate:'',validityTime:'',
+  items:[{description:'',unit:'عدد',quantity:0,tolerancePercent:0,toleranceQty:0,unitPrice:0,amount:0,discountPercent:0,discountAmount:0}],
+  discountPercent:0,vatEnabled:true,vatPercent:10,priceIncludesVat:false,otherCharges:0,
+  paymentTerms:'',deliveryTerms:'',description:'',signatureImage:'',showToman:true,
+  currency:'IRR', showSellerNameLogo: true
+};
+
+// === حالت ===
+let currentInvoice=null;
+let savedInvoices=[];
+let chatHistory=[];
+let pendingAIJson=null;
+let deleteTargetId=null;
+let aiPanelOpen=false;
+let isRecording=false;
+let recognition=null;
+
+// === ابزارها ===
+function generateId(){return 'pf_'+Date.now()+'_'+Math.random().toString(36).substr(2,9)}
+function deepClone(o){return JSON.parse(JSON.stringify(o))}
+function escHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+function escAndNl(s){return escHtml(s).replace(/\n/g,'<br>')}
+
+function formatCurrency(n, currency){
+  n = Number(n) || 0;
+  const sym = currencySymbols[currency] || currency;
+  if(currency === 'IRR'){
+    return n.toLocaleString('fa-IR') + ' ' + sym;
+  } else {
+    return n.toLocaleString('fa-IR') + ' ' + sym;
+  }
+}
+function formatNum(n){
+  n = Number(n) || 0;
+  return n.toLocaleString('fa-IR');
+}
+function formatToman(n){return Number(Math.round(n/10)).toLocaleString('fa-IR')+' تومان'}
+function safeNum(val) {
+  const n = Number(val);
+  return isNaN(n) ? 0 : n;
+}
+
+function showToast(msg,type='info'){
+  const c=document.getElementById('toast-container');const t=document.createElement('div');
+  const icons={success:'fa-check-circle',error:'fa-times-circle',info:'fa-info-circle'};
+  t.className='toast toast-'+type;t.innerHTML='<i class="fa-solid '+icons[type]+'"></i> '+msg;
+  c.appendChild(t);setTimeout(()=>{t.style.animation='slideOut .3s ease forwards';setTimeout(()=>t.remove(),300)},3000);
+}
+
+// === تاریخ شمسی ===
+function gregorianToShamsi(gy,gm,gd){
+  const g_d_m=[0,31,59,90,120,151,181,212,243,273,304,334];
+  let gy2=(gm>2)?(gy+1):gy;
+  let days=355666+(365*gy)+Math.floor((gy2+3)/4)-Math.floor((gy2+99)/100)+Math.floor((gy2+399)/400)+gd+g_d_m[gm-1];
+  let jy=-1595+(33*Math.floor(days/12053));days%=12053;
+  jy+=4*Math.floor(days/1461);days%=1461;
+  if(days>365){jy+=Math.floor((days-1)/365);days=(days-1)%365}
+  let jm,jd;
+  if(days<186){jm=1+Math.floor(days/31);jd=1+(days%31)}
+  else{jm=7+Math.floor((days-186)/30);jd=1+((days-186)%30)}
+  return{jy,jm,jd};
+}
+function getTodayShamsi(){
+  const d=new Date();const s=gregorianToShamsi(d.getFullYear(),d.getMonth()+1,d.getDate());
+  return s.jy+'/'+String(s.jm).padStart(2,'0')+'/'+String(s.jd).padStart(2,'0');
+}
+function getCurrentTime(){
+  const d=new Date();return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
+}
+function addShamsiDays(dateStr,days){
+  const parts=dateStr.split('/');
+  if(parts.length!==3)return dateStr;
+  let y=parseInt(parts[0]),m=parseInt(parts[1]),d=parseInt(parts[2]);
+  d+=days;
+  const monthDays=[31,31,31,31,31,31,30,30,30,30,30,29];
+  while(m<=12&&d>monthDays[m-1]){d-=monthDays[m-1];m++;if(m>12){m=1;y++;monthDays[11]=(y%4===3)?30:29}}
+  return y+'/'+String(m).padStart(2,'0')+'/'+String(d).padStart(2,'0');
+}
+
+// === عدد به حروف ===
+function numberToPersianWords(num){
+  if(num===0)return'صفر';
+  const yekan=['','یک','دو','سه','چهار','پنج','شش','هفت','هشت','نه','ده','یازده','دوازده','سیزده','چهارده','پانزده','شانزده','هفده','هجده','نوزده'];
+  const dahgan=['','','بیست','سی','چهل','پنجاه','شصت','هفتاد','هشتاد','نود'];
+  const sadgan=['','صد','دویست','سیصد','چهارصد','پانصد','ششصد','هفتصد','هشتصد','نهصد'];
+  function c3(n){
+    if(n===0)return'';
+    let r='';
+    if(n>=100){r+=sadgan[Math.floor(n/100)];n%=100;if(n>0)r+=' و '}
+    if(n>=20){r+=dahgan[Math.floor(n/10)];n%=10;if(n>0)r+=' و '}
+    if(n>0&&n<20)r+=yekan[n];
+    return r;
+  }
+  num=Math.floor(Math.abs(num));
+  let result='';
+  if(num>=1000000000){result+=c3(Math.floor(num/1000000000))+' میلیارد';num%=1000000000}
+  if(num>=1000000){result+=(result?' و ':'')+c3(Math.floor(num/1000000))+' میلیون';num%=1000000}
+  if(num>=1000){result+=(result?' و ':'')+c3(Math.floor(num/1000))+' هزار';num%=1000}
+  if(num>0)result+=(result?' و ':'')+c3(num);
+  return result+' ریال';
+}
+function amountToWords(num, currency){
+  num = safeNum(num);
+  if(currency==='IRR'){
+    return numberToPersianWords(num);
+  } else {
+    const sym = currencySymbols[currency] || currency;
+    return Number(num).toLocaleString('fa-IR') + ' ' + sym;
+  }
+}
+
+// === لوگو و استخراج رنگ ===
+function getDominantColor(img) {
+  try {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = img.width;
+    canvas.height = img.height;
+    ctx.drawImage(img, 0, 0);
+    const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+    // Sample center pixel (simple approach)
+    const centerIndex = (Math.floor(canvas.width/2) + Math.floor(canvas.height/2) * canvas.width) * 4;
+    const r = data[centerIndex];
+    const g = data[centerIndex+1];
+    const b = data[centerIndex+2];
+    return '#' + ((1<<24)+(r<<16)+(g<<8)+b).toString(16).slice(1);
+  } catch(e) {
+    return null;
+  }
+}
+function hexToRgb(hex) {
+  hex = hex.replace('#', '');
+  if (hex.length === 3) hex = hex[0]+hex[0]+hex[1]+hex[1]+hex[2]+hex[2];
+  const r = parseInt(hex.substring(0,2), 16);
+  const g = parseInt(hex.substring(2,4), 16);
+  const b = parseInt(hex.substring(4,6), 16);
+  return {r, g, b};
+}
+function blendColors(color1, color2, weight2) {
+  const rgb1 = hexToRgb(color1);
+  const rgb2 = hexToRgb(color2);
+  const w1 = 1 - weight2;
+  const r = Math.round(rgb1.r * w1 + rgb2.r * weight2);
+  const g = Math.round(rgb1.g * w1 + rgb2.g * weight2);
+  const b = Math.round(rgb1.b * w1 + rgb2.b * weight2);
+  return '#' + ((1<<24)+(r<<16)+(g<<8)+b).toString(16).slice(1);
+}
+
+function handleLogoFile(event){const file=event.target.files[0];if(!file)return;processLogoFile(file)}
+function processLogoFile(file){
+  if(file.size>2*1024*1024){showToast('حجم فایل باید کمتر از ۲ مگابایت باشد','error');return}
+  const reader=new FileReader();
+  reader.onload=function(e){
+    currentInvoice.seller.logoImage=e.target.result;
+    document.getElementById('logo-filename').textContent=file.name;
+    document.getElementById('logo-remove-btn').classList.remove('hidden');
+    // Extract color
+    const img = new Image();
+    img.onload = function() {
+      const color = getDominantColor(img);
+      if (color) {
+        currentInvoice.seller.logoColor = color;
+      }
+      showToast('لوگو بارگذاری شد','success');
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+function removeLogo(event){if(event)event.stopPropagation();currentInvoice.seller.logoImage='';currentInvoice.seller.logoColor='';document.getElementById('logo-filename').textContent='فایلی انتخاب نشده';document.getElementById('logo-remove-btn').classList.add('hidden');document.getElementById('logo-file-input').value='';showToast('لوگو حذف شد','info')}
+
+// === امضا ===
+function handleSigFile(event){const file=event.target.files[0];if(!file)return;processSigFile(file)}
+function handleSigDrop(event){event.preventDefault();event.currentTarget.classList.remove('drag-over');const file=event.dataTransfer.files[0];if(file&&file.type.startsWith('image/'))processSigFile(file);else showToast('لطفاً فایل تصویر بارگذاری کنید','error')}
+function processSigFile(file){
+  if(file.size>5*1024*1024){showToast('حجم فایل باید کمتر از ۵ مگابایت باشد','error');return}
+  const reader=new FileReader();
+  reader.onload=function(e){currentInvoice.signatureImage=e.target.result;updateSigPreview();showToast('امضا بارگذاری شد','success')};
+  reader.readAsDataURL(file);
+}
+function removeSignature(event){if(event)event.stopPropagation();currentInvoice.signatureImage='';updateSigPreview();document.getElementById('sig-file-input').value='';showToast('امضا حذف شد','info')}
+function updateSigPreview(){
+  const ph=document.getElementById('sig-placeholder'),pw=document.getElementById('sig-preview-wrap'),
+        img=document.getElementById('sig-preview-img'),rb=document.getElementById('sig-remove-btn');
+  if(currentInvoice.signatureImage){ph.classList.add('hidden');pw.classList.remove('hidden');img.src=currentInvoice.signatureImage;rb.classList.remove('hidden')}
+  else{ph.classList.remove('hidden');pw.classList.add('hidden');rb.classList.add('hidden')}
+}
+
+// === فرم ===
+const fieldIds=[
+  'f-seller-name','f-seller-address','f-seller-regNo','f-seller-economicCode','f-seller-nationalId','f-seller-tel','f-seller-fax',
+  'f-buyer-name','f-buyer-address','f-buyer-regNo','f-buyer-economicCode','f-buyer-nationalId','f-buyer-postalCode','f-buyer-tel',
+  'f-invoiceNumber','f-invoiceDate','f-invoiceTime','f-validityDate','f-validityTime',
+  'f-discountPercent','f-otherCharges','f-vatPercent',
+  'f-paymentTerms','f-deliveryTerms','f-description',
+  'f-vatEnabled','f-priceIncludesVat','f-showToman','f-currency', 'f-show-seller-name-logo'
+];
+const fieldMap={
+  'f-seller-name':'seller.name','f-seller-address':'seller.address','f-seller-regNo':'seller.regNo','f-seller-economicCode':'seller.economicCode','f-seller-nationalId':'seller.nationalId','f-seller-tel':'seller.tel','f-seller-fax':'seller.fax',
+  'f-buyer-name':'buyer.name','f-buyer-address':'buyer.address','f-buyer-regNo':'buyer.regNo','f-buyer-economicCode':'buyer.economicCode','f-buyer-nationalId':'buyer.nationalId','f-buyer-postalCode':'buyer.postalCode','f-buyer-tel':'buyer.tel',
+  'f-invoiceNumber':'invoiceNumber','f-invoiceDate':'invoiceDate','f-invoiceTime':'invoiceTime','f-validityDate':'validityDate','f-validityTime':'validityTime',
+  'f-discountPercent':'discountPercent','f-otherCharges':'otherCharges','f-vatPercent':'vatPercent',
+  'f-paymentTerms':'paymentTerms','f-deliveryTerms':'deliveryTerms','f-description':'description',
+  'f-vatEnabled':'vatEnabled','f-priceIncludesVat':'priceIncludesVat','f-showToman':'showToman',
+  'f-currency':'currency',
+  'f-show-seller-name-logo':'showSellerNameLogo'
+};
+
+function getV(obj,path){return path.split('.').reduce((o,k)=>o&&o[k],obj)}
+function setV(obj,path,val){const ks=path.split('.');let c=obj;for(let i=0;i<ks.length-1;i++)c=c[ks[i]];c[ks[ks.length-1]]=val}
+
+function populateForm(){
+  if(!currentInvoice)return;
+  for(const id of fieldIds){
+    const el=document.getElementById(id);if(!el)continue;
+    const path=fieldMap[id];const val=getV(currentInvoice,path);
+    if(id==='f-vatEnabled'||id==='f-priceIncludesVat'||id==='f-showToman'||id==='f-show-seller-name-logo'){el.checked=val!==undefined?val:true;continue}
+    if(id==='f-vatPercent'){el.value=val!==undefined?val:10;continue}
+    if(val!==undefined)el.value=val;
+  }
+  if(currentInvoice.seller.logoImage){document.getElementById('logo-filename').textContent='لوگو بارگذاری شده';document.getElementById('logo-remove-btn').classList.remove('hidden')}
+  else{document.getElementById('logo-filename').textContent='فایلی انتخاب نشده';document.getElementById('logo-remove-btn').classList.add('hidden')}
+  renderItems();recalculate();updateSigPreview();
+  // Update currency label for other charges
+  const currency = currentInvoice.currency || 'IRR';
+  document.getElementById('other-charges-currency').textContent = currencySymbols[currency] || currency;
+}
+
+function readForm(){
+  if(!currentInvoice)return;
+  for(const id of fieldIds){
+    const el=document.getElementById(id);if(!el)continue;
+    const path=fieldMap[id];
+    if(id==='f-vatEnabled'||id==='f-priceIncludesVat'||id==='f-showToman'||id==='f-show-seller-name-logo'){setV(currentInvoice,path,el.checked);continue}
+    let val=el.value;
+    if(path==='discountPercent'||path==='otherCharges'||path==='vatPercent')val=parseFloat(val)||0;
+    setV(currentInvoice,path,val);
+  }
+  
+  // Read items from form
+  const rows=document.querySelectorAll('#items-tbody tr');
+  const items=[];
+  rows.forEach((row)=>{
+    const desc=row.querySelector('.item-desc')?.value||'';
+    const unit=row.querySelector('.item-unit')?.value||'عدد';
+    const qty=safeNum(row.querySelector('.item-qty')?.value);
+    const tolPct=safeNum(row.querySelector('.item-tol-pct')?.value);
+    const tolQty=safeNum(row.querySelector('.item-tol-qty')?.value);
+    const price=safeNum(row.querySelector('.item-price')?.value);
+    const discPct=safeNum(row.querySelector('.item-disc-pct')?.value);
+    const discAmt=safeNum(row.querySelector('.item-disc-amt')?.value);
+    
+    // Calculate item amount
+    const gross = qty * price;
+    let itemDisc = 0;
+    if (discPct > 0) {
+      itemDisc = gross * discPct / 100;
+    } else if (discAmt > 0) {
+      itemDisc = discAmt;
+    }
+    const net = gross - itemDisc;
+    
+    items.push({
+      description: desc,
+      unit: unit,
+      quantity: qty,
+      tolerancePercent: tolPct,
+      toleranceQty: tolQty,
+      unitPrice: price,
+      amount: net,
+      discountPercent: discPct,
+      discountAmount: discAmt
+    });
+  });
+  
+  currentInvoice.items = items;
+  recalculate();
+}
+
+// === اقلام ===
+function renderItems(){
+  const tbody=document.getElementById('items-tbody');tbody.innerHTML='';
+  if(!currentInvoice||!currentInvoice.items)return;
+  const currency = currentInvoice.currency || 'IRR';
+  currentInvoice.items.forEach((item,i)=>{
+    const tr=document.createElement('tr');tr.style.borderBottom='1px solid var(--card-border)';
+    const localOpts=unitOptions.map(u=>`<option value="${u}"${u===item.unit?' selected':''}>${u}</option>`).join('');
+    tr.innerHTML=`
+      <td data-label="" class="p-1.5 text-center font-bold text-xs" style="color:var(--muted)">${formatNum(i+1)}</td>
+      <td data-label="شرح" class="p-1"><input class="input-field item-desc" value="${escHtml(item.description)}" oninput="readForm()" placeholder="شرح کالا/خدمات"></td>
+      <td data-label="واحد" class="p-1"><select class="input-field item-unit" onchange="readForm()">${localOpts}</select></td>
+      <td data-label="مقدار" class="p-1"><input type="number" min="0" step="0.01" class="input-field ltr text-center item-qty" value="${item.quantity}" oninput="readForm()"></td>
+      <td data-label="تلورانس %" class="p-1"><input type="number" min="0" max="100" step="0.1" class="input-field ltr text-center item-tol-pct" value="${item.tolerancePercent||0}" oninput="readForm()"></td>
+      <td data-label="تلورانس مقدار" class="p-1"><input type="number" min="0" step="0.01" class="input-field ltr text-center item-tol-qty" value="${item.toleranceQty||0}" oninput="readForm()"></td>
+      <td data-label="قیمت واحد" class="p-1"><input type="number" min="0" step="1" class="input-field ltr text-center item-price" value="${item.unitPrice}" oninput="readForm()"></td>
+      <td data-label="تخفیف %" class="p-1"><input type="number" min="0" max="100" step="0.1" class="input-field ltr text-center item-disc-pct" value="${item.discountPercent||0}" oninput="readForm()"></td>
+      <td data-label="تخفیف مبلغ" class="p-1"><input type="number" min="0" step="1" class="input-field ltr text-center item-disc-amt" value="${item.discountAmount||0}" oninput="readForm()"></td>
+      <td data-label="مبلغ نهایی" class="p-1.5 text-center font-bold text-xs" style="color:var(--accent)">${formatCurrency(item.amount, currency)}</td>
+      <td data-label="" class="p-1 text-center"><button onclick="removeItem(${i})" class="text-red-500 hover:text-red-700 transition-colors p-1" title="حذف"><i class="fa-solid fa-trash-can text-xs"></i></button></td>`;
+    tbody.appendChild(tr);
+  });
+}
+function addItem(){if(!currentInvoice)return;readForm();currentInvoice.items.push({description:'',unit:'عدد',quantity:0,tolerancePercent:0,toleranceQty:0,unitPrice:0,amount:0,discountPercent:0,discountAmount:0});renderItems();showToast('ردیف اضافه شد','success')}
+function removeItem(idx){if(!currentInvoice)return;readForm();if(currentInvoice.items.length<=1){showToast('حداقل یک ردیف لازم است','error');return}currentInvoice.items.splice(idx,1);renderItems();readForm();showToast('ردیف حذف شد','info')}
+
+// === محاسبات - Fixed ===
+function recalculate(){
+  if(!currentInvoice)return;
+  
+  const currency = currentInvoice.currency || 'IRR';
+  
+  // Read summary fields from form
+  const discPctGlobal = safeNum(document.getElementById('f-discountPercent')?.value);
+  const vatEnabled = document.getElementById('f-vatEnabled')?.checked ?? true;
+  const vatPct = safeNum(document.getElementById('f-vatPercent')?.value) || 10;
+  const priceIncludesVat = document.getElementById('f-priceIncludesVat')?.checked ?? false;
+  const other = safeNum(document.getElementById('f-otherCharges')?.value);
+  const showToman = document.getElementById('f-showToman')?.checked ?? true;
+  
+  // Update currentInvoice with these values
+  currentInvoice.discountPercent = discPctGlobal;
+  currentInvoice.otherCharges = other;
+  currentInvoice.vatEnabled = vatEnabled;
+  currentInvoice.vatPercent = vatPct;
+  currentInvoice.priceIncludesVat = priceIncludesVat;
+  currentInvoice.showToman = showToman;
+  
+  // Calculate item totals
+  let subtotalBeforeDisc = 0;
+  let totalItemsDiscount = 0;
+  
+  currentInvoice.items.forEach((item, idx) => {
+    const qty = safeNum(item.quantity);
+    const price = safeNum(item.unitPrice);
+    const gross = qty * price;
+    subtotalBeforeDisc += gross;
+    
+    // Calculate item discount
+    let itemDisc = 0;
+    const discPct = safeNum(item.discountPercent);
+    const discAmt = safeNum(item.discountAmount);
+    
+    if (discPct > 0) {
+      itemDisc = gross * discPct / 100;
+    } else if (discAmt > 0) {
+      itemDisc = discAmt;
+    }
+    
+    totalItemsDiscount += itemDisc;
+    item.amount = gross - itemDisc; // Update item amount
+  });
+  
+  // Calculate after item discounts
+  const afterItemsDisc = subtotalBeforeDisc - totalItemsDiscount;
+  
+  // Apply global discount
+  const globalDiscAmt = Math.round(afterItemsDisc * discPctGlobal / 100);
+  const afterGlobalDisc = afterItemsDisc - globalDiscAmt;
+  
+  // Calculate VAT
+  let vat = 0;
+  if (vatEnabled) {
+    if (priceIncludesVat) {
+      // Extract VAT from VAT-inclusive amount
+      vat = Math.round(afterGlobalDisc * vatPct / (100 + vatPct));
+    } else {
+      // Add VAT to VAT-exclusive amount
+      vat = Math.round(afterGlobalDisc * vatPct / 100);
+    }
+  }
+  
+  // Calculate grand total
+  let grandTotal;
+  if (priceIncludesVat) {
+    // Amount already includes VAT
+    grandTotal = afterGlobalDisc + other;
+  } else {
+    // Need to add VAT
+    grandTotal = afterGlobalDisc + vat + other;
+  }
+  
+  // Update display
+  document.getElementById('subtotalBeforeDiscDisplay').textContent = formatCurrency(subtotalBeforeDisc, currency);
+  document.getElementById('discountAmountDisplay').textContent = '− ' + formatCurrency(globalDiscAmt, currency);
+  document.getElementById('afterDiscountDisplay').textContent = formatCurrency(afterGlobalDisc, currency);
+  document.getElementById('vatDisplay').textContent = vatEnabled ? formatCurrency(vat, currency) : 'غیرفعال';
+  document.getElementById('grandTotalDisplay').textContent = formatCurrency(grandTotal, currency);
+  document.getElementById('totalAmountWords').textContent = amountToWords(grandTotal, currency);
+  document.getElementById('tomanDisplay').textContent = showToman ? formatToman(grandTotal) : '';
+  document.getElementById('tomanDisplay').parentElement.style.display = showToman ? 'block' : 'none';
+  document.getElementById('totalItemsDiscDisplay').textContent = formatCurrency(totalItemsDiscount, currency);
+  
+  // Update other charges label
+  document.getElementById('other-charges-currency').textContent = currencySymbols[currency] || currency;
+  
+  // Update item row displays
+  updateItemRowDisplays();
+}
+
+function updateItemRowDisplays() {
+  if (!currentInvoice) return;
+  const currency = currentInvoice.currency || 'IRR';
+  const rows = document.querySelectorAll('#items-tbody tr');
+  
+  rows.forEach((row, idx) => {
+    if (currentInvoice.items[idx]) {
+      const amtCell = row.querySelectorAll('td')[9]; // 10th cell (0-indexed)
+      if (amtCell) {
+        amtCell.textContent = formatCurrency(currentInvoice.items[idx].amount, currency);
+      }
+    }
+  });
+}
+
+// === پیش‌نمایش - Fixed ===
+function renderPreview(){
+  readForm(); // Ensure form data is synced
+  const inv = currentInvoice;
+  if(!inv)return;
+
+  const printArea = document.getElementById('print-area');
+  printArea.style.direction = 'rtl';
+  printArea.style.unicodeBidi = 'embed';
+  printArea.style.textAlign = 'right';
+
+  // Determine accent color from logo
+  let accentColor = '#92400E'; // default
+  let sectionHeaderBg = '#ece7df'; // default light
+  if (inv.seller.logoColor) {
+    accentColor = inv.seller.logoColor;
+    const rgb = hexToRgb(accentColor);
+    sectionHeaderBg = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.2)`;
+  }
+  const currency = inv.currency || 'IRR';
+  const currencyLabel = currencySymbols[currency] || currency;
+
+  // Calculate all totals for preview
+  let subtotalBeforeDisc = 0;
+  let totalItemsDiscount = 0;
+  
+  inv.items.forEach((item) => {
+    const qty = safeNum(item.quantity);
+    const price = safeNum(item.unitPrice);
+    const gross = qty * price;
+    subtotalBeforeDisc += gross;
+    
+    let itemDisc = 0;
+    const discPct = safeNum(item.discountPercent);
+    const discAmt = safeNum(item.discountAmount);
+    
+    if (discPct > 0) {
+      itemDisc = gross * discPct / 100;
+    } else if (discAmt > 0) {
+      itemDisc = discAmt;
+    }
+    totalItemsDiscount += itemDisc;
+  });
+  
+  const afterItemsDisc = subtotalBeforeDisc - totalItemsDiscount;
+  const discPctGlobal = safeNum(inv.discountPercent);
+  const globalDiscAmt = Math.round(afterItemsDisc * discPctGlobal / 100);
+  const afterGlobalDisc = afterItemsDisc - globalDiscAmt;
+  
+  const vatPct = safeNum(inv.vatPercent) || 10;
+  let vat = 0;
+  if (inv.vatEnabled) {
+    if (inv.priceIncludesVat) {
+      vat = Math.round(afterGlobalDisc * vatPct / (100 + vatPct));
+    } else {
+      vat = Math.round(afterGlobalDisc * vatPct / 100);
+    }
+  }
+  
+  const other = safeNum(inv.otherCharges);
+  let grandTotal;
+  if (inv.priceIncludesVat) {
+    grandTotal = afterGlobalDisc + other;
+  } else {
+    grandTotal = afterGlobalDisc + vat + other;
+  }
+
+  // Generate items HTML
+  let itemsHtml='';
+  inv.items.forEach((item,i)=>{
+    const qty = safeNum(item.quantity);
+    const price = safeNum(item.unitPrice);
+    const gross = qty * price;
+    
+    let itemDiscount = 0;
+    const discPct = safeNum(item.discountPercent);
+    const discAmt = safeNum(item.discountAmount);
+    
+    if (discPct > 0) {
+      itemDiscount = gross * discPct / 100;
+    } else if (discAmt > 0) {
+      itemDiscount = discAmt;
+    }
+    const net = gross - itemDiscount;
+
+      // Discount display
+      let discText = '';
+      if (item.discountPercent > 0) discText = formatNum(item.discountPercent) + '٪';
+      else if (item.discountAmount > 0) discText = formatCurrency(item.discountAmount, currency);
+      
+      // Tolerance percent cell
+      const tolPctText = item.tolerancePercent > 0 ? formatNum(item.tolerancePercent) + '٪' : '—';
+      // Tolerance quantity cell
+      const tolQtyText = item.toleranceQty > 0 ? formatNum(item.toleranceQty) + ' ' + escHtml(item.unit) : '—';
+      
+      itemsHtml+=`<tr>
+        <td style="text-align:center;width:28px">${formatNum(i+1)}</td>
+        <td>${escHtml(item.description)||'—'}</td>
+        <td style="text-align:center;width:55px">${escHtml(item.unit)}</td>
+        <td style="text-align:center;width:60px">${formatNum(item.quantity)}</td>
+        <td style="text-align:center;width:65px">${tolPctText}</td>
+        <td style="text-align:center;width:70px">${tolQtyText}</td>
+        <td style="text-align:center;width:80px">${formatNum(item.unitPrice)}</td>
+        <td style="text-align:center;width:70px">${discText}</td>
+        <td style="text-align:center;font-weight:700;width:90px">${formatNum(net)}</td>
+      </tr>`;
+  });
+
+  // Discount line for global discount
+  let discountLine='';
+  if(totalItemsDiscount>0){
+    discountLine=`<div style="display:flex;justify-content:space-between;padding:2px 0"><span>تخفیف اقلام</span><span style="color:#DC2626">− ${formatCurrency(totalItemsDiscount, currency)}</span></div>`;
+  }
+  if(discPctGlobal>0){
+    discountLine+=`<div style="display:flex;justify-content:space-between;padding:2px 0"><span>تخفیف کلی (${formatNum(discPctGlobal)}٪)</span><span style="color:#DC2626">− ${formatCurrency(globalDiscAmt, currency)}</span></div>`;
+  }
+  
+  let vatLine='';
+  if(inv.vatEnabled){
+    const vatLabel=inv.priceIncludesVat?'مالیات بر ارزش افزوده ('+formatNum(vatPct)+'٪) — شامل در قیمت':'مالیات بر ارزش افزوده ('+formatNum(vatPct)+'٪)';
+    vatLine=`<div style="display:flex;justify-content:space-between;padding:2px 0"><span>${vatLabel}</span><span style="color:#7C3AED">${formatCurrency(vat, currency)}</span></div>`;
+  }
+  
+  let otherLine='';
+  if(other>0){
+    otherLine=`<div style="display:flex;justify-content:space-between;padding:2px 0"><span>سایر هزینه‌ها</span><span>${formatCurrency(other, currency)}</span></div>`;
+  }
+  
+  let tomanLine='';
+  if(inv.showToman){
+    tomanLine=`<div style="display:flex;justify-content:space-between;padding:2px 0;color:#6B7280"><span>معادل تومانی</span><span>${formatToman(grandTotal)}</span></div>`;
+  }
+
+  const showSellerName = inv.showSellerNameLogo !== false; // Default: true
+  const sellerName = inv.seller.name || '';
+  let logoHtml = '';
+  if (inv.seller.logoImage) {
+    // Container for logo + name
+    logoHtml = `<div style="display:flex; align-items:center; gap:8px;">`;
+    logoHtml += `<img src="${inv.seller.logoImage}" style="max-height:60px;max-width:140px;object-fit:contain" alt="لوگو">`;
+    if (showSellerName && sellerName) {
+      logoHtml += `<p style="font-size:10px;font-weight:bold; white-space:nowrap">${escHtml(sellerName)}</p>`;
+    }
+    logoHtml += `</div>`;
+  } else if (showSellerName && sellerName) {
+    // Fallback: show name alone if no logo exists
+    logoHtml = `<p style="font-size:12px;font-weight:bold">${escHtml(sellerName)}</p>`;
+  } else {
+    logoHtml = ''; // Empty if no logo and no name
+  }
+  const dateStr=escHtml(inv.invoiceDate)+(inv.invoiceTime?' — ساعت '+escHtml(inv.invoiceTime):'');
+  const validStr=escHtml(inv.validityDate)+(inv.validityTime?' — ساعت '+escHtml(inv.validityTime):'');
+
+  let sigHtml='';
+  if(inv.signatureImage){
+    sigHtml=`<img src="${inv.signatureImage}" style="max-height:85px;max-width:200px;object-fit:contain;position:absolute;bottom:0;left:0" alt="امضا">`;
+  }else{
+    sigHtml=`<div style="border-bottom:1px solid #444;width:190px;height:1px;position:absolute;bottom:15px;left:0"></div>`;
+  }
+
+  function makePartyBox(title,person){
+    const rows=[
+      person.name?`<div class="party-row"><span class="label">نام:</span><span><strong>${escHtml(person.name)}</strong></span></div>`:'',
+      person.address?`<div class="party-row"><span class="label">آدرس:</span><span>${escAndNl(person.address)}</span></div>`:'',
+      person.regNo?`<div class="party-row"><span class="label">شماره ثبت:</span><span>${escHtml(person.regNo)}</span></div>`:'',
+      person.economicCode?`<div class="party-row"><span class="label">کد اقتصادی:</span><span>${escHtml(person.economicCode)}</span></div>`:'',
+      person.nationalId?`<div class="party-row"><span class="label">شناسه ملی:</span><span>${escHtml(person.nationalId)}</span></div>`:'',
+      person.tel?`<div class="party-row"><span class="label">تلفن:</span><span>${escHtml(person.tel)}</span></div>`:'',
+      person.fax?`<div class="party-row"><span class="label">فکس:</span><span>${escHtml(person.fax)}</span></div>`:'',
+      person.postalCode?`<div class="party-row"><span class="label">کد پستی:</span><span>${escHtml(person.postalCode)}</span></div>`:''
+    ].filter(Boolean).join('');
+    return `<div class="party-box" style="border-color:${accentColor}"><div class="party-box-header" style="background:${sectionHeaderBg}">${title}</div><div class="party-box-body">${rows}</div></div>`;
+  }
+
+  
+  printArea.innerHTML=`
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">
+      <div style="flex:1">${logoHtml}</div>
+      <div style="text-align:center;flex:2;direction:rtl">
+        <div class="inv-title" style="direction:rtl;unicode-bidi:embed">پیش فاکتور کالا و خدمات</div>
+      </div>
+      <div style="flex:1;text-align:left;font-size:9px;color:#666">
+        <p style="font-weight:bold;font-size:11px; margin:0">${escHtml(inv.invoiceNumber)}</p>
+        <p style="font-size:8px; margin:0">شماره پیش‌فاکتور</p>
+      </div>
+    </div>
+
+    <table style="margin-bottom:8px">
+      <tr><td class="section-header" colspan="4" style="background:${sectionHeaderBg}">جزئیات پیش‌فاکتور</td></tr>
+      <tr>
+        <td class="label">تاریخ و ساعت صدور:</td><td>${dateStr}</td>
+        <td class="label">تاریخ و ساعت اعتبار:</td><td>${validStr}</td>
+      </tr>
+    </table>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+   ${makePartyBox('فروشنده',inv.seller)}
+   ${makePartyBox('خریدار',inv.buyer)}
+   </div>
+
+    ${inv.description?`
+    <table style="margin-top:4px;margin-bottom:4px">
+      <tr><td class="section-header" style="background:${sectionHeaderBg}">شرح و توضیحات</td></tr>
+      <tr><td style="white-space:pre-wrap">${escAndNl(inv.description)}</td></tr>
+    </table>`:''}
+
+    <table style="margin-top:6px">
+      <tr>
+        <th style="width:28px;text-align:center">ردیف</th>
+        <th>شرح کالا/خدمات</th>
+        <th style="width:55px;text-align:center">واحد</th>
+        <th style="width:70px;text-align:center">مقدار</th>
+        <th style="width:65px;text-align:center">تلورانس (%)</th>
+        <th style="width:70px;text-align:center">تلورانس (مقدار)</th>
+        <th style="width:80px;text-align:center">قیمت واحد</th>
+        <th style="width:70px;text-align:center">تخفیف</th>
+        <th style="width:90px;text-align:center">مبلغ نهایی (${currencyLabel})</th>
+      </tr>
+      ${itemsHtml}
+      <tr style="font-weight:700;background:#f9f7f4">
+        <td colspan="6" style="text-align:left">جمع کل اقلام (قبل از تخفیف)</td>
+        <td style="text-align:center">${formatNum(subtotalBeforeDisc)}</td>
+      </tr>
+    </table>
+
+    <div style="margin-top:6px;border:1px solid #444;border-radius:4px;padding:6px 8px">
+      <div style="display:flex;justify-content:space-between;padding:2px 0;font-weight:700;border-bottom:1px solid #ddd"><span>جمع کل اقلام (قبل از تخفیف)</span><span>${formatCurrency(subtotalBeforeDisc, currency)}</span></div>
+      ${discountLine}
+      <div style="display:flex;justify-content:space-between;padding:2px 0"><span>مبلغ مشمول مالیات</span><span>${formatCurrency(afterGlobalDisc, currency)}</span></div>
+      ${vatLine}
+      ${otherLine}
+      <div style="display:flex;justify-content:space-between;padding:4px 0;font-weight:900;font-size:12px;background:${sectionHeaderBg};margin:2px -8px -6px;padding:6px 8px;border-radius:0 0 3px 3px"><span>جمع کل</span><span>${formatCurrency(grandTotal, currency)}</span></div>
+      ${tomanLine}
+      <div style="margin-top:4px;padding-top:4px;border-top:1px solid #ddd"><span style="font-weight:600">مبلغ به حروف: </span><span style="color:${accentColor};font-weight:700">${amountToWords(grandTotal, currency)}</span></div>
+    </div>
+
+    ${inv.paymentTerms||inv.deliveryTerms?`
+    <table style="margin-top:6px">
+      <tr><td class="section-header" colspan="2" style="background:${sectionHeaderBg}">شرایط</td></tr>
+      ${inv.paymentTerms?`<tr><td class="label" style="vertical-align:top;width:110px">شرایط پرداخت:</td><td>${escAndNl(inv.paymentTerms)}</td></tr>`:''}
+      ${inv.deliveryTerms?`<tr><td class="label" style="vertical-align:top;width:110px">شرایط تحویل:</td><td>${escAndNl(inv.deliveryTerms)}</td></tr>`:''}
+    </table>`:''}
+
+    <div class="sign-area">
+      <div style="font-size:10px"><p><strong>تاریخ و ساعت صدور:</strong> ${dateStr}</p></div>
+      <div style="text-align:left;font-size:10px;position:relative;min-height:100px">
+        <p style="margin-bottom:0"><strong>امضا و مهر فروشنده</strong></p>
+        <div style="position:relative;height:80px">${sigHtml}</div>
+        <p style="margin-top:2px">${escHtml(inv.seller.name)}</p>
+      </div>
+    </div>`;
+
+  const previewTableCells = printArea.querySelectorAll('th, td');
+  previewTableCells.forEach(cell => {
+    cell.style.verticalAlign = 'middle';
+  });
+}
+
+function printInvoice(){renderPreview();setTimeout(()=>window.print(),200)}
+async function exportImage(){
+  switchTab('preview');
+  renderPreview();
+  await document.fonts.ready;
+  await new Promise(r=>setTimeout(r,800));
+
+  const el = document.getElementById('print-area');
+  
+  // Fix: Force RTL on element and all children
+  el.style.direction = 'rtl';
+  el.style.unicodeBidi = 'embed';
+  el.querySelectorAll('*').forEach(child => {
+    if (child.tagName !== 'INPUT' && child.tagName !== 'TEXTAREA' && child.tagName !== 'SELECT') {
+      child.style.direction = 'rtl';
+      child.style.unicodeBidi = 'embed';
+      child.style.fontFamily = "'Vazirmatn', sans-serif";
+    }
+  });
+  
+  showToast('در حال تولید تصویر...', 'info');
+
+  try {
+    const canvas = await html2canvas(el, {
+      scale: 2,
+      useCORS: true,
+      logging: false,
+      backgroundColor: '#ffffff',
+      letterRendering: false,
+      allowTaint: true,
+      foreignObjectRendering: false,
+      onclone: function(clonedDoc) {
+        const clonedEl = clonedDoc.getElementById('print-area');
+        if (clonedEl) {
+          clonedEl.style.direction = 'rtl';
+          clonedEl.style.unicodeBidi = 'embed';
+          clonedEl.querySelectorAll('*').forEach(child => {
+            if (child.tagName !== 'INPUT' && child.tagName !== 'TEXTAREA' && child.tagName !== 'SELECT') {
+              child.style.direction = 'rtl';
+              child.style.unicodeBidi = 'embed';
+              child.style.fontFamily = "'Vazirmatn', sans-serif";
+            }
+          });
+          // Force vertical alignment in cloned table cells
+          clonedEl.querySelectorAll('th, td').forEach(cell => {
+            cell.style.display = 'table-cell'; // اطمینان از رفتار جدولی
+            cell.style.verticalAlign = 'middle';
+            cell.style.lineHeight = '1'; // در خروجی تصویر، مقدار 1 معمولاً بهترین تراز عمودی را می‌دهد
+            cell.style.paddingTop = '0px'; // تنظیم دستی برای جبران خطای فونت وزیر در تبدیل به Canvas
+            cell.style.paddingBottom = '15px';
+          });
+        }
+        clonedDoc.documentElement.setAttribute('dir', 'rtl');
+        clonedDoc.body.style.direction = 'rtl';
+      }
+    });
+
+    const link = document.createElement('a');
+    link.download = (currentInvoice?.invoiceNumber || 'proforma') + '.png';
+    link.href = canvas.toDataURL('image/png');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    showToast('تصویر ذخیره شد', 'success');
+  } catch (err) {
+    console.error(err);
+    showToast('خطا در تولید تصویر', 'error');
+  }
+}
+
+async function exportPDF() {
+  renderPreview();
+  await document.fonts.ready;
+  await new Promise(r => setTimeout(r, 800));
+
+  const element = document.getElementById('print-area');
+  showToast('در حال تولید PDF...', 'info');
+
+  try {
+    const canvas = await html2canvas(element, {
+      scale: 2,
+      useCORS: true,
+      logging: false,
+      backgroundColor: '#ffffff',
+      letterRendering: true,
+      allowTaint: true,
+      foreignObjectRendering: false,
+      onclone: function(clonedDoc) {
+        const clonedEl = clonedDoc.getElementById('print-area');
+        if (clonedEl) {
+          clonedEl.style.direction = 'rtl';
+          clonedEl.style.unicodeBidi = 'embed';
+          clonedEl.querySelectorAll('*').forEach(child => {
+            if (child.tagName !== 'INPUT' && child.tagName !== 'TEXTAREA' && child.tagName !== 'SELECT') {
+              child.style.direction = 'rtl';
+              child.style.unicodeBidi = 'embed';
+              child.style.fontFamily = "'Vazirmatn', sans-serif";
+            }
+          });
+          // Force vertical alignment in cloned table cells
+          clonedEl.querySelectorAll('th, td').forEach(cell => {
+            cell.style.display = 'table-cell'; // اطمینان از رفتار جدولی
+            cell.style.verticalAlign = 'middle';
+            cell.style.lineHeight = '1'; // در خروجی تصویر، مقدار 1 معمولاً بهترین تراز عمودی را می‌دهد
+            cell.style.paddingTop = '0px'; // تنظیم دستی برای جبران خطای فونت وزیر در تبدیل به Canvas
+            cell.style.paddingBottom = '15px';
+          });
+        }
+        clonedDoc.documentElement.setAttribute('dir', 'rtl');
+        clonedDoc.body.style.direction = 'rtl';
+      }
+    });
+
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF({
+      unit: 'mm',
+      format: 'a4',
+      orientation: 'landscape', // Changed from 'portrait' to 'landscape'
+      hotfixes: ["px_scaling"],
+      usePureCanvas: true
+    });
+
+    // Changed dimensions for landscape
+    const imgWidth = 297; // A4 landscape width in mm (was 210)
+    const pageHeight = 210; // A4 landscape height in mm (was 297)
+    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+    
+    let heightLeft = imgHeight;
+    let position = 0;
+    
+    const imgData = canvas.toDataURL('image/jpeg', 0.95);
+    
+    pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+    heightLeft -= pageHeight;
+    
+    while (heightLeft >= 0) {
+      position = heightLeft - imgHeight;
+      pdf.addPage();
+      pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+    }
+    
+    pdf.save((currentInvoice?.invoiceNumber || 'proforma') + '.pdf');
+    showToast('PDF با موفقیت ذخیره شد', 'success');
+  } catch (err) {
+    console.error(err);
+    showToast('خطا در تولید PDF: ' + err.message, 'error');
+  }
+}
+
+
+// === تاریخچه ===
+function loadSavedInvoices(){try{const d=localStorage.getItem('domestic_proforma_invoices2');savedInvoices=d?JSON.parse(d):[]}catch(e){savedInvoices=[]}}
+function saveInvoicesToStorage(){try{localStorage.setItem('domestic_proforma_invoices2',JSON.stringify(savedInvoices))}catch(e){showToast('خطا در ذخیره‌سازی','error')}}
+
+function saveCurrentInvoice(){
+  readForm();if(!currentInvoice)return;
+  const existing=savedInvoices.find(inv=>inv.id===currentInvoice.id);
+  if(existing){Object.assign(existing,deepClone(currentInvoice),{updatedAt:Date.now()});showToast('پیش‌فاکتور بروزرسانی شد','success')}
+  else{currentInvoice.id=generateId();currentInvoice.createdAt=Date.now();currentInvoice.updatedAt=Date.now();savedInvoices.unshift(deepClone(currentInvoice));showToast('پیش‌فاکتور ذخیره شد','success')}
+  saveInvoicesToStorage();
+}
+function loadInvoice(id){const inv=savedInvoices.find(i=>i.id===id);if(!inv){showToast('یافت نشد','error');return}currentInvoice=deepClone(inv);populateForm();switchTab('form');showToast('بارگذاری شد','success')}
+function duplicateInvoice(id){
+  const inv=savedInvoices.find(i=>i.id===id);if(!inv){showToast('یافت نشد','error');return}
+  const dup=deepClone(inv);dup.id=generateId();dup.invoiceNumber=inv.invoiceNumber+'-کپی';dup.createdAt=Date.now();dup.updatedAt=Date.now();
+  savedInvoices.unshift(dup);saveInvoicesToStorage();renderHistory();showToast('کپی ایجاد شد','success');
+}
+function requestDelete(id){deleteTargetId=id;document.getElementById('delete-modal').classList.remove('hidden');document.getElementById('confirm-delete-btn').onclick=()=>confirmDelete()}
+function confirmDelete(){if(!deleteTargetId)return;savedInvoices=savedInvoices.filter(i=>i.id!==deleteTargetId);saveInvoicesToStorage();renderHistory();closeDeleteModal();showToast('حذف شد','info')}
+function closeDeleteModal(){document.getElementById('delete-modal').classList.add('hidden');deleteTargetId=null}
+
+function renderHistory(){
+  const container=document.getElementById('history-list');
+  const query=(document.getElementById('historySearch')?.value||'').toLowerCase();
+  const filtered=savedInvoices.filter(inv=>{const num=(inv.invoiceNumber||'').toLowerCase();const buyer=(inv.buyer?.name||'').toLowerCase();return num.includes(query)||buyer.includes(query)});
+  if(filtered.length===0){container.innerHTML=`<div class="card text-center py-12"><i class="fa-solid fa-folder-open text-4xl mb-3" style="color:var(--muted)"></i><p style="color:var(--muted)">${query?'نتیجه‌ای یافت نشد':'هنوز پیش‌فاکتوری ذخیره نشده'}</p></div>`;return}
+  container.innerHTML=filtered.map(inv=>{
+    const currency = inv.currency || 'IRR';
+    const total=inv.items?inv.items.reduce((s,it)=>s+Number(it.amount||0),0):0;
+    const disc=Math.round(total*(inv.discountPercent||0)/100);const afterD=total-disc;
+    const vPct=inv.vatPercent||10;let v=0;
+    if(inv.vatEnabled){if(inv.priceIncludesVat){v=Math.round(afterD*vPct/(100+vPct))}else{v=Math.round(afterD*vPct/100)}}
+    const other=Number(inv.otherCharges)||0;
+    const grand=inv.priceIncludesVat?afterD+other:afterD+v+other;
+    const date=inv.createdAt?new Date(inv.createdAt).toLocaleDateString('fa-IR'):'—';
+    return `<div class="card flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+      <div class="flex-1 min-w-0">
+        <div class="flex items-center gap-2 mb-1 flex-wrap">
+          <span class="font-extrabold" style="color:var(--accent)">${escHtml(inv.invoiceNumber)}</span>
+          <span class="text-xs px-2 py-0.5 rounded-full" style="background:var(--accent-light);color:var(--accent)">${date}</span>
+          <span class="text-xs px-2 py-0.5 rounded-full" style="background:var(--input-bg);color:var(--muted)">${currencySymbols[currency]||currency}</span>
+        </div>
+        <p class="text-sm font-semibold truncate">${escHtml(inv.buyer?.name||'بدون نام')}</p>
+        <p class="text-xs" style="color:var(--muted)">${inv.items?inv.items.length:0} قلم &middot; ${formatCurrency(grand, currency)}</p>
+      </div>
+      <div class="flex gap-2 flex-shrink-0 w-full sm:w-auto">
+        <button onclick="loadInvoice('${inv.id}')" class="btn btn-primary btn-sm flex-1 sm:flex-none justify-center"><i class="fa-solid fa-folder-open"></i> <span class="sm:hidden">بارگذاری</span></button>
+        <button onclick="duplicateInvoice('${inv.id}')" class="btn btn-secondary btn-sm"><i class="fa-solid fa-copy"></i></button>
+        <button onclick="requestDelete('${inv.id}')" class="btn btn-danger btn-sm"><i class="fa-solid fa-trash-can"></i></button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function exportBackup(){const data=JSON.stringify(savedInvoices,null,2);const blob=new Blob([data],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='proforma_backup_'+new Date().toISOString().slice(0,10)+'.json';a.click();URL.revokeObjectURL(url);showToast('فایل پشتیبان ذخیره شد','success')}
+function importBackup(event){
+  const file=event.target.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=function(e){try{const data=JSON.parse(e.target.result);if(!Array.isArray(data))throw new Error('');let count=0;data.forEach(inv=>{if(inv.id&&inv.invoiceNumber){if(!savedInvoices.find(s=>s.id===inv.id)){savedInvoices.push(inv);count++}}});saveInvoicesToStorage();renderHistory();showToast(count+' پیش‌فاکتور وارد شد','success')}catch(err){showToast('خطا در وارد کردن فایل','error')}};
+  reader.readAsText(file);event.target.value='';
+}
+
+// === فروشنده پیش‌فرض ===
+function saveDefaultSeller(){readForm();try{localStorage.setItem('domestic_default_seller2',JSON.stringify(currentInvoice.seller));showToast('فروشنده پیش‌فرض ذخیره شد','success')}catch(e){showToast('خطا در ذخیره','error')}}
+function loadDefaultSeller(){try{const d=localStorage.getItem('domestic_default_seller2');if(d)return JSON.parse(d)}catch(e){}return null}
+
+// === پیش‌فاکتور جدید ===
+function newInvoice(){
+  const ds=loadDefaultSeller();currentInvoice=deepClone(defaultInvoice);
+  if(ds)currentInvoice.seller=ds;
+  const count=savedInvoices.length+1;
+  currentInvoice.invoiceNumber='PF-'+getTodayShamsi().slice(0,7).replace('/','')+'-'+String(count).padStart(3,'0');
+  currentInvoice.invoiceDate=getTodayShamsi();
+  currentInvoice.invoiceTime=getCurrentTime();
+  currentInvoice.validityDate=addShamsiDays(getTodayShamsi(),30);
+  currentInvoice.validityTime=''; // Time optional
+  populateForm();switchTab('form');showToast('پیش‌فاکتور جدید ایجاد شد','success');
+}
+
+// === حالت تاریک ===
+function toggleDark(){document.documentElement.classList.toggle('dark');const isDark=document.documentElement.classList.contains('dark');localStorage.setItem('domestic_dark',isDark?'1':'0');document.getElementById('darkToggle').innerHTML=isDark?'<i class="fa-solid fa-sun"></i>':'<i class="fa-solid fa-moon"></i>'}
+function initDarkMode(){const saved=localStorage.getItem('domestic_dark');if(saved==='1'||(!saved&&window.matchMedia('(prefers-color-scheme:dark)').matches)){document.documentElement.classList.add('dark');document.getElementById('darkToggle').innerHTML='<i class="fa-solid fa-sun"></i>'}}
+
+// === تب‌ها ===
+function switchTab(name){
+  document.querySelectorAll('.tab-content').forEach(el=>el.classList.add('hidden'));
+  document.querySelectorAll('.tab-btn').forEach(el=>el.classList.remove('active'));
+  const panel=document.getElementById('tab-'+name);if(panel)panel.classList.remove('hidden');
+  const btns=document.querySelectorAll('.tab-btn');const tabMap={'form':0,'preview':1,'history':2};
+  if(btns[tabMap[name]])btns[tabMap[name]].classList.add('active');
+  if(name==='preview')renderPreview();
+  if(name==='history')renderHistory();
+}
+
+// === پنل هوشمند ===
+function toggleAIPanel(){
+  const isMobile=window.innerWidth<1024;
+  if(isMobile){
+    document.getElementById('ai-mobile-overlay').classList.remove('hidden');
+    const apikey=document.getElementById('ai-apikey').value;
+    document.getElementById('mobile-ai-apikey').value=apikey;
+    const model=document.getElementById('ai-model').value;
+    document.getElementById('mobile-ai-model').value=model;
+    syncMobilePanel();
+  }else{
+    const panel=document.getElementById('ai-panel');aiPanelOpen=!aiPanelOpen;
+    if(aiPanelOpen){panel.classList.remove('closed');panel.classList.add('open')}
+    else{panel.classList.remove('open');panel.classList.add('closed')}
+    updateAIApplyVisibility();
+  }
+}
+function closeMobileAI(){document.getElementById('ai-mobile-overlay').classList.add('hidden')}
+function syncMobilePanel(){
+  const src=document.getElementById('chat-messages');
+  const dest=document.getElementById('mobile-chat-messages');
+  dest.innerHTML=src.innerHTML;dest.scrollTop=dest.scrollHeight;
+  const mobileApply=document.getElementById('mobile-ai-apply-area');
+  if(pendingAIJson)mobileApply.classList.remove('hidden');else mobileApply.classList.add('hidden')
+}
+function toggleAISettings(){const body=document.getElementById('ai-settings-body');const chevron=document.getElementById('ai-settings-chevron');body.classList.toggle('hidden');chevron.style.transform=body.classList.contains('hidden')?'':'rotate(180deg)'}
+function toggleMobileAISettings(){const body=document.getElementById('mobile-ai-settings-body');const chevron=document.getElementById('mobile-ai-settings-chevron');body.classList.toggle('hidden');chevron.style.transform=body.classList.contains('hidden')?'':'rotate(180deg)'}
+function updateAIApplyVisibility(){const applyArea=document.getElementById('ai-apply-area');if(pendingAIJson)applyArea.classList.remove('hidden');else applyArea.classList.add('hidden')}
+
+// === ضبط صوتی ===
+async function toggleVoiceRecording(target){
+  if(isRecording){if(recognition)recognition.stop();isRecording=false;updateMicUI(target,false);return}
+  if(!('webkitSpeechRecognition' in window)&&!('SpeechRecognition' in window)){showToast('مرورگر شما از تشخیص گفتار پشتیبانی نمی‌کند','error');return}
+  const SpeechRecognition=window.SpeechRecognition||window.webkitSpeechRecognition;
+  recognition=new SpeechRecognition();recognition.continuous=false;recognition.interimResults=false;recognition.lang='fa-IR';
+  recognition.onstart=()=>{isRecording=true;updateMicUI(target,true)};
+  recognition.onresult=(event)=>{const transcript=event.results[0][0].transcript;const inputId=target==='mobile'?'mobile-chat-input':'chat-input';document.getElementById(inputId).value=transcript;isRecording=false;updateMicUI(target,false);showToast('صدا دریافت شد','success')};
+  recognition.onerror=()=>{isRecording=false;updateMicUI(target,false);showToast('خطا در تشخیص صدا','error')};
+  recognition.onend=()=>{isRecording=false;updateMicUI(target,false)};
+  recognition.start();
+}
+function updateMicUI(target,recording){const btnId=target==='mobile'?'mic-btn-mobile':'mic-btn-desktop';const statusId=target==='mobile'?'voice-status-mobile':'voice-status-desktop';const btn=document.getElementById(btnId);const status=document.getElementById(statusId);if(recording){btn.classList.add('recording');status.classList.remove('hidden')}else{btn.classList.remove('recording');status.classList.add('hidden')}}
+
+// === چت هوشمند ===
+function getApiKey(){return document.getElementById('ai-apikey').value.trim()}
+function saveApiKey(){try{localStorage.setItem('domestic_ai_key2',document.getElementById('ai-apikey').value.trim())}catch(e){}}
+function loadApiKey(){try{const k=localStorage.getItem('domestic_ai_key2');if(k){document.getElementById('ai-apikey').value=k;const m=document.getElementById('mobile-ai-apikey');if(m)m.value=k}}catch(e){}}
+function saveModelChoice(){try{localStorage.setItem('domestic_ai_model2',document.getElementById('ai-model').value)}catch(e){}}
+function loadModelChoice(){try{const m=localStorage.getItem('domestic_ai_model2');if(m){document.getElementById('ai-model').value=m;const mm=document.getElementById('mobile-ai-model');if(mm)mm.value=m}}catch(e){}}
+function toggleKeyVis(){const inp=document.getElementById('ai-apikey');inp.type=inp.type==='password'?'text':'password'}
+
+async function sendChat(){const input=document.getElementById('chat-input');const msg=input.value.trim();if(!msg)return;const apiKey=getApiKey();if(!apiKey){showToast('کلید API را در تنظیمات وارد کنید','error');return}input.value='';await doSendChat(msg,'chat-messages')}
+async function sendChatMobile(){const input=document.getElementById('mobile-chat-input');const msg=input.value.trim();if(!msg)return;const apiKey=getApiKey();if(!apiKey){showToast('کلید API را در تنظیمات وارد کنید','error');return}input.value='';await doSendChat(msg,'mobile-chat-messages');const src=document.getElementById('chat-messages');const dest=document.getElementById('mobile-chat-messages');dest.innerHTML=src.innerHTML;dest.scrollTop=dest.scrollHeight}
+
+async function doSendChat(msg,targetElId){
+  const chatEl=document.getElementById(targetElId);
+  chatEl.innerHTML+=`<div class="chat-msg chat-user"><p>${escHtml(msg)}</p></div>`;
+  chatEl.scrollTop=chatEl.scrollHeight;
+  const lid='l'+Date.now();
+  chatEl.innerHTML+=`<div id="${lid}" class="chat-msg chat-ai"><div class="flex items-center gap-2"><div class="pulse-dot"></div><p style="color:var(--muted)">در حال پردازش...</p></div></div>`;
+  chatEl.scrollTop=chatEl.scrollHeight;
+
+  readForm();
+  const invoiceData=deepClone(currentInvoice);
+  delete invoiceData.id;delete invoiceData.createdAt;delete invoiceData.updatedAt;
+  if(invoiceData.seller)invoiceData.seller.logoImage=invoiceData.seller.logoImage?'[لوگو]':'';
+  invoiceData.signatureImage=invoiceData.signatureImage?'[امضا]':'';
+
+  const systemPrompt=`شما دستیار هوشمند پیش‌فاکتور داخلی ایران هستید. به زبان فارسی پاسخ دهید. داده‌های فعلی:\n${JSON.stringify(invoiceData,null,2)}\nواحد پول: ${currencySymbols[invoiceData.currency] || invoiceData.currency}. مالیات بر ارزش افزوده پیش‌فرض: ۱۰٪. تاریخ‌ها شمسی.\nواحدهای مجاز: ${unitOptions.join('، ')}.\nوقتی کاربر می‌خواهد فاکتور را تغییر دهد، با فرمت JSON پاسخ دهید:\n\`\`\`json\n{"field": "value", ...}\n\`\`\`\nفیلدهای seller و buyer آبجکت هستند. items آرایه است. discountPercent، vatPercent عدد هستند. vatEnabled و priceIncludesVat بولی هستند. مختصر و حرفه‌ای باشید.`;
+
+  chatHistory.push({role:'user',content:msg});
+  const model=document.getElementById('ai-model').value;
+
+  try{
+    const response=await fetch('https://openrouter.ai/api/v1/chat/completions',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+apiKey,'HTTP-Referer':window.location.href,'X-Title':'Domestic Proforma'},
+      body:JSON.stringify({model:model,messages:[{role:'system',content:systemPrompt},...chatHistory]})
+    });
+    const loadingEl=document.getElementById(lid);if(loadingEl)loadingEl.remove();
+    if(!response.ok){const errData=await response.json().catch(()=>({}));throw new Error(errData.error?.message||'خطای API')}
+    const data=await response.json();
+    const aiMsg=data.choices?.[0]?.message?.content||'پاسخی دریافت نشد.';
+    chatHistory.push({role:'assistant',content:aiMsg});
+    const jsonMatch=aiMsg.match(/```json\s*([\s\S]*?)```/);
+    if(jsonMatch){try{JSON.parse(jsonMatch[1].trim());pendingAIJson=jsonMatch[1].trim();updateAIApplyVisibility();const ma=document.getElementById('mobile-ai-apply-area');if(ma)ma.classList.remove('hidden')}catch(e){}}
+    const renderedMsg=aiMsg.replace(/```json\s*[\s\S]*?```/g,'<em style="color:var(--accent)">(تغییرات شناسایی شد — اعمال کنید)</em>').replace(/```[\s\S]*?```/g,'<code>$1</code>');
+    chatEl.innerHTML+=`<div class="chat-msg chat-ai"><p class="font-bold text-xs mb-1" style="color:var(--accent)">دستیار</p><div style="white-space:pre-wrap">${renderedMsg}</div></div>`;
+    chatEl.scrollTop=chatEl.scrollHeight;
+    const otherId=targetElId==='chat-messages'?'mobile-chat-messages':'chat-messages';
+    const other=document.getElementById(otherId);if(other){other.innerHTML=chatEl.innerHTML;other.scrollTop=other.scrollHeight}
+  }catch(err){
+    const loadingEl=document.getElementById(lid);if(loadingEl)loadingEl.remove();
+    chatEl.innerHTML+=`<div class="chat-msg chat-ai" style="background:#FEE2E2;color:#991B1B;border:1px solid #FECACA"><p class="font-bold text-xs mb-1">خطا</p><p>${escHtml(err.message)}</p></div>`;
+    chatEl.scrollTop=chatEl.scrollHeight;chatHistory.pop();
+  }
+}
+
+function applyAIChanges(){
+  if(!pendingAIJson){showToast('تغییراتی وجود ندارد','error');return}
+  try{
+    const changes=JSON.parse(pendingAIJson);
+    Object.keys(changes).forEach(key=>{
+      if(key==='seller'||key==='buyer'){if(typeof changes[key]==='object'&&changes[key]!==null){currentInvoice[key]={...currentInvoice[key],...changes[key]}}}
+      else if(key==='items'){if(Array.isArray(changes[key])){currentInvoice.items=changes[key].map(it=>({...it,amount:(it.quantity||0)*(it.unitPrice||0)}))}}
+      else if(key==='signatureImage'||key==='logoImage'){/* skip */}
+      else{currentInvoice[key]=changes[key]}
+    });
+    populateForm();pendingAIJson=null;updateAIApplyVisibility();
+    const ma=document.getElementById('mobile-ai-apply-area');if(ma)ma.classList.add('hidden');
+    showToast('تغییرات اعمال شد','success');
+  }catch(e){showToast('خطا در پردازش','error')}
+}
+
+// === راه‌اندازی ===
+function init(){
+  initDarkMode();loadSavedInvoices();loadApiKey();loadModelChoice();
+  currentInvoice=deepClone(defaultInvoice);
+  const ds=loadDefaultSeller();if(ds)currentInvoice.seller=ds;
+  const count=savedInvoices.length+1;
+  currentInvoice.invoiceNumber='PF-'+getTodayShamsi().slice(0,7).replace('/','')+'-'+String(count).padStart(3,'0');
+  currentInvoice.invoiceDate=getTodayShamsi();
+  currentInvoice.invoiceTime=getCurrentTime();
+  currentInvoice.validityDate=addShamsiDays(getTodayShamsi(),30);
+  currentInvoice.validityTime='23:59';
+  populateForm();
+  if(window.innerWidth<1024){document.getElementById('ai-panel').classList.remove('open');document.getElementById('ai-panel').classList.add('closed')}
+  document.querySelectorAll('.input-field').forEach(el=>{el.addEventListener('change',()=>readForm())});
+}
+init();
+</script>
+</body>
+</html>
