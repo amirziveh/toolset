@@ -1,4 +1,5 @@
 <script setup>
+import { ref, watch } from 'vue';
 import { useInvoiceStore } from '@/stores/invoice';
 import { getTodayShamsi, getCurrentTime, addShamsiDays } from '@/utils/shamsi-date';
 
@@ -18,6 +19,29 @@ const initDates = () => {
 };
 
 initDates();
+
+// Watchers for time input toggles
+watch(
+  () => store.currentInvoice.invoiceTimeEnabled,
+  (newVal) => {
+    if (!newVal) {
+      store.currentInvoice.invoiceTime = '';
+    } else if (!store.currentInvoice.invoiceTime) {
+      store.currentInvoice.invoiceTime = getCurrentTime();
+    }
+  }
+);
+
+watch(
+  () => store.currentInvoice.validityTimeEnabled,
+  (newVal) => {
+    if (!newVal) {
+      store.currentInvoice.validityTime = '';
+    } else if (!store.currentInvoice.validityTime) {
+      store.currentInvoice.validityTime = getCurrentTime();
+    }
+  }
+);
 </script>
 
 <template>
@@ -37,29 +61,45 @@ initDates();
       <div>
         <label class="field-label">تاریخ و ساعت صدور</label>
         <div class="flex gap-1.5">
-          <input 
-            v-model="store.currentInvoice.invoiceDate" 
+          <input
+            v-model="store.currentInvoice.invoiceDate"
             class="input-field ltr flex-1 min-w-[130px]"
           >
-          <input 
-            v-model="store.currentInvoice.invoiceTime" 
-            type="time" 
-            class="input-field ltr w-28 flex-shrink-0"
+          <input
+            v-model="store.currentInvoice.invoiceTime"
+            type="time"
+            class="input-field ltr w-28 flex-1"
+            :disabled="!store.currentInvoice.invoiceTimeEnabled"
           >
+          <label class="toggle-switch">
+            <input
+              type="checkbox"
+              v-model="store.currentInvoice.invoiceTimeEnabled"
+            >
+            <span class="toggle-slider"></span>
+          </label>
         </div>
       </div>
       <div>
         <label class="field-label">تاریخ و ساعت اعتبار</label>
         <div class="flex gap-1.5">
-          <input 
-            v-model="store.currentInvoice.validityDate" 
+          <input
+            v-model="store.currentInvoice.validityDate"
             class="input-field ltr flex-1 min-w-[130px]"
           >
-          <input 
-            v-model="store.currentInvoice.validityTime" 
-            type="time" 
-            class="input-field ltr w-28 flex-shrink-0"
+          <input
+            v-model="store.currentInvoice.validityTime"
+            type="time"
+            class="input-field ltr w-28 flex-1"
+            :disabled="!store.currentInvoice.validityTimeEnabled"
           >
+          <label class="toggle-switch">
+            <input
+              type="checkbox"
+              v-model="store.currentInvoice.validityTimeEnabled"
+            >
+            <span class="toggle-slider"></span>
+          </label>
         </div>
       </div>
     </div>

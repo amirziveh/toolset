@@ -49,6 +49,8 @@ const defaultInvoice = {
   invoiceTime: '',
   validityDate: '',
   validityTime: '',
+  invoiceTimeEnabled: true,
+  validityTimeEnabled: true,
   items: [{
     id: Date.now().toString(),
     description: '',

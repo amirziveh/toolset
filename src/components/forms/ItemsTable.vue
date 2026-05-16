@@ -2,6 +2,7 @@
 import { useInvoiceStore } from '@/stores/invoice';
 import { unitOptions } from '@/stores/invoice';
 import { safeNum, formatCurrency } from '@/utils/number-format';
+import { computed } from 'vue';
 
 const store = useInvoiceStore();
 
@@ -67,6 +68,19 @@ function calculateItemTax(item) {
     return Math.round(afterDisc * vatPct / 100);
   }
 }
+
+// Calculate item total (amount after discount + tax)
+function calculateItemTotal(item) {
+  return calculateAmount(item) + calculateItemTax(item);
+}
+
+// Total sum of all item totals (reactive)
+const itemsTotal = computed(() => {
+  if (!store.currentInvoice?.items) return 0;
+  return store.currentInvoice.items.reduce((sum, item) => {
+    return sum + calculateItemTotal(item);
+  }, 0);
+});
 </script>
 
 <template>
@@ -80,7 +94,7 @@ function calculateItemTax(item) {
       </button>
     </div>
     <div class="items-responsive overflow-x-auto">
-      <table class="w-full text-sm" style="min-width:1200px">
+      <table class="w-full text-sm" style="min-width:880px">
         <thead>
           <tr style="background:var(--accent-light);border-bottom:2px solid var(--card-border)">
             <th class="p-2 text-center text-xs font-bold" style="color:var(--accent);width:30px">ردیف</th>
@@ -90,7 +104,6 @@ function calculateItemTax(item) {
             <th class="p-2 text-center text-xs font-bold" style="color:var(--accent);width:110px">مبلغ واحد</th>
             <th class="p-2 text-center text-xs font-bold" style="color:var(--accent);width:110px">مبلغ تخفیف</th>
             <th v-if="store.currentInvoice.vatEnabled" class="p-2 text-center text-xs font-bold" style="color:var(--accent);width:115px">جمع عوارض و مالیات</th>
-            <th class="p-2 text-center text-xs font-bold" style="color:var(--accent);width:115px">جمع کل</th>
             <th class="p-2 text-center text-xs font-bold" style="color:var(--accent);width:30px"></th>
           </tr>
         </thead>
@@ -153,9 +166,6 @@ function calculateItemTax(item) {
             <td v-if="store.currentInvoice.vatEnabled" data-label="جمع عوارض و مالیات" class="p-1.5 text-center font-bold text-xs" style="color:var(--accent)">
               {{ formatCurrency(calculateItemTax(item), store.currentInvoice.currency) }}
             </td>
-            <td data-label="جمع کل" class="p-1.5 text-center font-bold text-xs" style="color:var(--accent)">
-              {{ formatCurrency(calculateAmount(item) + calculateItemTax(item), store.currentInvoice.currency) }}
-            </td>
             <td data-label="" class="p-1 text-center">
               <button 
                 @click="removeItem(index)" 
@@ -167,6 +177,15 @@ function calculateItemTax(item) {
             </td>
           </tr>
         </tbody>
+        <tfoot>
+          <tr style="background:var(--accent-light);border-top:2px solid var(--card-border);font-weight:bold">
+            <td colspan="6" class="p-2 text-right text-sm" style="color:var(--accent)">جمع کل اقلام</td>
+            <td v-if="store.currentInvoice.vatEnabled" class="p-2 text-center text-sm" style="color:var(--accent)">
+              {{ formatCurrency(itemsTotal, store.currentInvoice.currency) }}
+            </td>
+            <td class="p-2 text-center text-sm" style="color:var(--accent)"></td>
+          </tr>
+        </tfoot>
       </table>
     </div>
   </div>

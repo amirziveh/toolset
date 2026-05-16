@@ -133,6 +133,20 @@ function calculateItemTax(item) {
   }
 }
 
+// Calculate item total (amount after discount + tax)
+function calculateItemTotal(item) {
+  return calculateAmount(item) + calculateItemTax(item);
+}
+
+// Calculate total sum of all item totals
+function calculateItemsTotal() {
+  const inv = store.currentInvoice;
+  if (!inv?.items) return 0;
+  return inv.items.reduce((sum, item) => {
+    return sum + calculateItemTotal(item);
+  }, 0);
+}
+
 // Generate items HTML for preview
 function generateItemsHtml() {
   const inv = store.currentInvoice;
@@ -178,6 +192,26 @@ function generateItemsHtml() {
   return html;
 }
 
+// Generate items table footer with total row
+function generateItemsFooter() {
+  const inv = store.currentInvoice;
+  if (!inv?.items || inv.items.length === 0) return '';
+  
+  const currency = inv.currency || 'IRR';
+  const itemsTotal = calculateItemsTotal();
+  const taxCol = inv.vatEnabled ? '<td style="text-align:center;font-weight:bold;width:10%"></td>' : '';
+  
+  return `
+    <tfoot>
+      <tr style="background:#f3f4f6;font-weight:bold">
+        <td colspan="6" style="text-align:right;padding:8px;font-size:12px;color:#374151">جمع کل اقلام</td>
+        ${taxCol}
+        <td style="text-align:center;padding:8px;font-size:12px;color:#374151">${formatCurrency(itemsTotal, currency)}</td>
+      </tr>
+    </tfoot>
+  `;
+}
+
 // Make party box
 function makePartyBox(title, person) {
   const inv = store.currentInvoice;
@@ -197,7 +231,7 @@ function makePartyBox(title, person) {
     person.postalCode?`<div class="party-row"><span class="label">کد پستی:</span><span>${escHtml(person.postalCode)}</span></div>`:''
   ].filter(Boolean).join('');
   
-  return `<div class="party-box" style="border-color:${accentColor}"><div class="party-box-header" style="background:${sectionHeaderBg}">${title}</div><div class="party-box-body">${rows}</div></div>`;
+  return `<div class="party-box"><div class="party-box-header" style="background:${sectionHeaderBg}">${title}</div><div class="party-box-body">${rows}</div></div>`;
 }
 
 // Render the full preview
@@ -271,7 +305,7 @@ function renderPreview() {
   
   let tomanLine = '';
   if (inv.showToman) {
-    tomanLine = `<div style="display:flex;justify-content:space-between;padding:2px 0;color:#6B7280"><span>معادل تومانی</span><span>${formatToman(grandTotal)}</span></div>`;
+    tomanLine = `<div style="display:flex;justify-content:space-between;padding:2px 0;color:#6B7280;margin-top:7px"><span>معادل تومانی</span><span>${formatToman(grandTotal)}</span></div>`;
   }
   
   const showSellerName = inv.showSellerNameLogo !== false;
@@ -288,8 +322,8 @@ function renderPreview() {
     logoHtml = `<p style="font-size:12px;font-weight:bold">${escHtml(sellerName)}</p>`;
   }
   
-  const dateStr = escHtml(inv.invoiceDate) + (inv.invoiceTime ? ' — ساعت ' + escHtml(inv.invoiceTime) : '');
-  const validStr = escHtml(inv.validityDate) + (inv.validityTime ? ' — ساعت ' + escHtml(inv.validityTime) : '');
+  const dateStr = escHtml(inv.invoiceDate) + (inv.invoiceTimeEnabled && inv.invoiceTime ? ' — ساعت ' + escHtml(inv.invoiceTime) : '');
+  const validStr = escHtml(inv.validityDate) + (inv.validityTimeEnabled && inv.validityTime ? ' — ساعت ' + escHtml(inv.validityTime) : '');
   
   let sigHtml = '';
   if (inv.signatureImage) {
@@ -300,6 +334,7 @@ function renderPreview() {
   
   // Generate items HTML
   const itemsHtml = generateItemsHtml();
+  const itemsFooter = generateItemsFooter();
   
   // Generate party boxes
   const sellerBox = makePartyBox('فروشنده', inv.seller);
@@ -307,6 +342,7 @@ function renderPreview() {
   
   // Build table header based on VAT enabled
   const taxHeader = inv.vatEnabled ? '<th style="width:10%;text-align:center">جمع عوارض و مالیات</th>' : '';
+  const taxFooterCol = inv.vatEnabled ? '<td style="text-align:center;font-weight:bold;width:10%"></td>' : '';
   
   printArea.innerHTML = `
     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">
@@ -321,10 +357,10 @@ function renderPreview() {
     </div>
 
     <table style="margin-bottom:8px;width:100%;table-layout:fixed">
-      <tr><td class="section-header" colspan="4" style="background:${sectionHeaderBg}">جزئیات پیش‌فاکتور</td></tr>
+      <tr></tr>
       <tr>
-        <td class="label">تاریخ و ساعت صدور:</td><td>${dateStr}</td>
-        <td class="label">تاریخ و ساعت اعتبار:</td><td>${validStr}</td>
+        <td class="label">زمان صدور:</td><td>${dateStr}</td>
+        <td class="label">زمان اعتبار:</td><td>${validStr}</td>
       </tr>
     </table>
 
@@ -340,21 +376,22 @@ function renderPreview() {
         </table>` : ''}
 
     <table style="margin-top:6px;width:100%;table-layout:fixed">
-      <tr>
-        <th style="width:4%;text-align:center">ردیف</th>
-        <th style="width:35%">شرح کالا/خدمات</th>
-        <th style="width:10%;text-align:center">مقدار</th>
-        <th style="width:8%;text-align:center">واحد</th>
-        <th style="width:10%;text-align:center">مبلغ واحد</th>
-        <th style="width:10%;text-align:center">مبلغ تخفیف</th>
-        ${taxHeader}
-        <th style="width:10%;text-align:center">جمع کل</th>
-      </tr>
-      ${itemsHtml}
-      <tr style="font-weight:700;background:#f9f7f4">
-        <td colspan="6" style="text-align:left">جمع کل اقلام (قبل از تخفیف)</td>
-        <td style="text-align:center">${formatNum(totals)}</td>
-      </tr>
+      <thead>
+        <tr>
+          <th style="width:4%;text-align:center">ردیف</th>
+          <th style="width:35%">شرح کالا/خدمات</th>
+          <th style="width:10%;text-align:center">مقدار</th>
+          <th style="width:8%;text-align:center">واحد</th>
+          <th style="width:10%;text-align:center">مبلغ واحد</th>
+          <th style="width:10%;text-align:center">مبلغ تخفیف</th>
+          ${taxHeader}
+          <th style="width:10%;text-align:center">جمع کل</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${itemsHtml}
+      </tbody>
+      ${itemsFooter}
     </table>
 
     ${inv.additionalDescription ? `
@@ -363,17 +400,6 @@ function renderPreview() {
           <tr><td style="direction:rtl;unicode-bidi:embed;overflow-wrap:break-word;word-break:break-word;padding:8px;text-align:right">${renderHtml(inv.additionalDescription)}</td></tr>
         </table>` : ''}
 
-    <div style="margin-top:6px;border:1px solid #444;border-radius:4px;padding:6px 8px">
-      <div style="display:flex;justify-content:space-between;padding:2px 0;font-weight:700;border-bottom:1px solid #ddd"><span>جمع کل اقلام (قبل از تخفیف)</span><span>${formatCurrency(totals, currency)}</span></div>
-      ${discountLine}
-      <div style="display:flex;justify-content:space-between;padding:2px 0"><span>مبلغ مشمول مالیات</span><span>${formatCurrency(afterGlobalDisc, currency)}</span></div>
-      ${vatLine}
-      ${otherLine}
-      <div style="display:flex;justify-content:space-between;padding:4px 0;font-weight:900;font-size:12px;background:${sectionHeaderBg};margin:2px -8px -6px;padding:6px 8px;border-radius:0 0 3px 3px"><span>جمع کل</span><span>${formatCurrency(grandTotal, currency)}</span></div>
-      ${tomanLine}
-      <div style="margin-top:4px;padding-top:4px;border-top:1px solid #ddd"><span style="font-weight:600">مبلغ به حروف: </span><span style="color:${accentColor};font-weight:700">${amountToWords(grandTotal, currency)}</span></div>
-    </div>
-
     ${inv.paymentTerms || inv.deliveryTerms ? `
         <table style="margin-top:8px;width:100%;table-layout:fixed">
           <tr><td class="section-header" colspan="2" style="background:${sectionHeaderBg}">شرایط</td></tr>
@@ -381,12 +407,16 @@ function renderPreview() {
           ${inv.deliveryTerms ? `<tr><td class="label" style="vertical-align:top;width:30%">شرایط تحویل:</td><td>${escAndNl(inv.deliveryTerms)}</td></tr>` : ''}
         </table>` : ''}
 
-    <div class="sign-area">
-      <div style="font-size:10px"><p><strong>تاریخ و ساعت صدور:</strong> ${dateStr}</p></div>
-      <div style="text-align:left;font-size:10px;position:relative;min-height:100px">
-        <p style="margin-bottom:0"><strong>امضا و مهر فروشنده</strong></p>
-        <div style="position:relative;height:80px">${sigHtml}</div>
-        <p style="margin-top:2px">${escHtml(inv.seller.name)}</p>
+    <div class="sign-area" style="margin-top:20px;font-size:10px">
+      <div style="display:flex;justify-content:space-between">
+        <div style="text-align:right;margin-right:40px"><strong>مهر و امضای فروشنده</strong></div>
+        <div style="position:relative;height:80px;margin-right:150px">${sigHtml}</div>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-top:8px;position:relative;min-height:100px">
+        <div style="text-align:left;font-size:10px;position:relative">
+          <div style="text-align:left;margin-left:40px"><strong>مهر و امضای خریدار</strong></div>
+          
+        </div>
       </div>
     </div>
   `;

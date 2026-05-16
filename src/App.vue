@@ -12,6 +12,7 @@ import InvoiceDetailsForm from './components/forms/InvoiceDetailsForm.vue';
 import ItemsTable from './components/forms/ItemsTable.vue';
 import AdditionalDescription from './components/forms/AdditionalDescription.vue';
 import InvoiceSummary from './components/forms/InvoiceSummary.vue';
+import SignatureUpload from './components/forms/SignatureUpload.vue';
 import InvoicePreview from './components/InvoicePreview.vue';
 import HistoryList from './components/HistoryList.vue';
 
@@ -178,7 +179,15 @@ function loadInvoice(id) {
         <AdditionalDescription class="mb-3 sm:mb-4" />
 
         <!-- Summary -->
-        <InvoiceSummary />
+        <InvoiceSummary class="mb-3 sm:mb-4" />
+
+        <!-- Signature -->
+        <div class="card mb-3 sm:mb-4">
+          <h3 class="font-extrabold text-sm mb-3 flex items-center gap-2" style="color:var(--accent)">
+            <i class="fa-solid fa-stamp"></i> امضا و مهر
+          </h3>
+          <SignatureUpload />
+        </div>
       </div>
 
       <!-- Preview Tab -->
