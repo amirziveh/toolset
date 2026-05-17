@@ -39,7 +39,7 @@ label.field-label{display:block;font-size:.7rem;font-weight:700;color:var(--mute
   vertical-align: middle !important;
   line-height: 1.4;
 }
-.invoice-preview th{background:#f3f0eb;font-weight:700;font-size:9.5px;letter-spacing: normal}
+.invoice-preview th{font-weight:700;font-size:9.5px;letter-spacing: normal}
 .invoice-preview .inv-title{text-align:center;font-size:20px;font-weight:900;letter-spacing:normal;margin-bottom:8px;border-bottom:3px double #444;padding-bottom:6px;direction:rtl;unicode-bidi:embed;font-variant-ligatures: common-ligatures;}
 .invoice-preview .section-header{background:#ece7df;font-weight:700;font-size:9.5px;padding:3px 7px;border:1px solid #444}
 .invoice-preview .label{font-weight:600;white-space:nowrap;width:1%;padding-left:8px}
@@ -48,7 +48,9 @@ label.field-label{display:block;font-size:.7rem;font-weight:700;color:var(--mute
 .invoice-preview .party-box-body{padding:6px 8px}
 .invoice-preview .party-row{display:flex;gap:4px;margin-bottom:2px}
 .invoice-preview .party-row .label{font-weight:600;white-space:nowrap;min-width:80px}
-.invoice-preview .sign-area{margin-top:25px;display:flex;justify-content:space-between}
+.invoice-preview .sign-area{margin-top:25px;display:flex;justify-content:space-between;align-items:flex-start}
+.invoice-preview .sign-seller{flex:1;text-align:right}
+.invoice-preview .sign-buyer{flex:1;text-align:left}
 .sig-drop-zone{border:2px dashed var(--input-border);border-radius:10px;padding:1.25rem;text-align:center;cursor:pointer;transition:border-color .2s,background .2s}
 .sig-drop-zone:hover,.sig-drop-zone.drag-over{border-color:var(--accent);background:var(--accent-light)}
 ::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--input-border);border-radius:3px}
@@ -88,7 +90,7 @@ label.field-label{display:block;font-size:.7rem;font-weight:700;color:var(--mute
   .invoice-preview .inv-title{font-size:16px}
   .invoice-preview .party-row .label{min-width:60px;font-size:9px}
   .invoice-preview .party-box-header{font-size:9.5px}
-  .invoice-preview .sign-area{flex-direction:column;gap:15px}
+  .invoice-preview .sign-area{display:flex;gap:8px}
   .total-row{font-size:.8rem;padding:.4rem .6rem}
   .total-row.highlight{font-size:.9rem}
 }

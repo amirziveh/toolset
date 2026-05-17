@@ -5,6 +5,12 @@ import { nextTick, onMounted, watch, ref, computed, onUnmounted } from 'vue';
 
 const store = useInvoiceStore();
 
+// Ref for scroll-wrapper element
+const scrollWrapper = ref(null);
+
+// Track initial touch distance for pinch gesture
+const initialTouchDistance = ref(null);
+
 // A4 horizontal dimensions (297mm x 210mm = 1123px x 794px)
 const A4_WIDTH = 1123;
 const A4_HEIGHT = 794;
@@ -31,7 +37,7 @@ const totalScale = computed(() => fitScale.value * zoomLevel.value);
 // Computed transform style for zoom wrapper
 const zoomStyle = computed(() => ({
   transform: `scale(${totalScale.value})`,
-  transformOrigin: 'top center'
+  transformOrigin: 'top right'
 }));
 
 // Zoom methods
@@ -52,14 +58,52 @@ function handleResize() {
   calculateFitScale();
 }
 
+// Pinch-to-zoom touch handlers
+function handleTouchStart(event) {
+  if (event.touches.length === 2) {
+    const touch1 = event.touches[0];
+    const touch2 = event.touches[1];
+    const distance = Math.hypot(touch1.clientX - touch2.clientX, touch1.clientY - touch2.clientY);
+    initialTouchDistance.value = distance;
+  }
+}
+
+function handleTouchMove(event) {
+  if (event.touches.length === 2 && initialTouchDistance.value !== null) {
+    const touch1 = event.touches[0];
+    const touch2 = event.touches[1];
+    const newDistance = Math.hypot(touch1.clientX - touch2.clientX, touch1.clientY - touch2.clientY);
+    const scaleRatio = newDistance / initialTouchDistance.value;
+    zoomLevel.value = Math.min(3, Math.max(0.3, zoomLevel.value * scaleRatio));
+    initialTouchDistance.value = newDistance;
+    event.preventDefault();
+  }
+}
+
+function handleTouchEnd(event) {
+  if (event.touches.length < 2) {
+    initialTouchDistance.value = null;
+  }
+}
+
 // Lifecycle hooks
 onMounted(() => {
   calculateFitScale();
   window.addEventListener('resize', handleResize);
+  if (scrollWrapper.value) {
+    scrollWrapper.value.addEventListener('touchstart', handleTouchStart, { passive: false });
+    scrollWrapper.value.addEventListener('touchmove', handleTouchMove, { passive: false });
+    scrollWrapper.value.addEventListener('touchend', handleTouchEnd, { passive: false });
+  }
 });
 
 onUnmounted(() => {
   window.removeEventListener('resize', handleResize);
+  if (scrollWrapper.value) {
+    scrollWrapper.value.removeEventListener('touchstart', handleTouchStart);
+    scrollWrapper.value.removeEventListener('touchmove', handleTouchMove);
+    scrollWrapper.value.removeEventListener('touchend', handleTouchEnd);
+  }
 });
 
 // Helper functions
@@ -216,10 +260,9 @@ function generateItemsFooter() {
 function makePartyBox(title, person) {
   const inv = store.currentInvoice;
   const accentColor = inv?.seller.logoColor || '#92400E';
-  const sectionHeaderBg = inv?.seller.logoColor ? 
-    `rgba(${hexToRgb(accentColor).r}, ${hexToRgb(accentColor).g}, ${hexToRgb(accentColor).b}, 0.2)` : 
+  const sectionHeaderBg = inv?.seller.logoColor ?
+    `rgba(${hexToRgb(accentColor).r}, ${hexToRgb(accentColor).g}, ${hexToRgb(accentColor).b}, 0.2)` :
     '#ece7df';
-  
   const rows = [
     person.name?`<div class="party-row"><span class="label">نام:</span><span><strong>${escHtml(person.name)}</strong></span></div>`:'',
     person.address?`<div class="party-row"><span class="label">آدرس:</span><span>${escAndNl(person.address)}</span></div>`:'',
@@ -247,13 +290,10 @@ function renderPreview() {
   printArea.style.textAlign = 'right';
   
   // Determine accent color from logo
-  let accentColor = '#92400E';
-  let sectionHeaderBg = '#ece7df';
-  if (inv.seller.logoColor) {
-    accentColor = inv.seller.logoColor;
-    const rgb = hexToRgb(accentColor);
-    sectionHeaderBg = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.2)`;
-  }
+  const accentColor = inv?.seller.logoColor || '#92400E';
+  const sectionHeaderBg = inv?.seller.logoColor ?
+      `rgba(${hexToRgb(accentColor).r}, ${hexToRgb(accentColor).g}, ${hexToRgb(accentColor).b}, 0.1)` :
+      '#ece7df';
   const currency = inv.currency || 'IRR';
   const currencyLabel = currencySymbols[currency] || currency;
   
@@ -326,10 +366,10 @@ function renderPreview() {
   const validStr = escHtml(inv.validityDate) + (inv.validityTimeEnabled && inv.validityTime ? ' — ساعت ' + escHtml(inv.validityTime) : '');
   
   let sigHtml = '';
-  if (inv.signatureImage) {
-    sigHtml = `<img src="${inv.signatureImage}" style="max-height:85px;max-width:200px;object-fit:contain;position:absolute;bottom:0;left:0" alt="امضا">`;
+  if (inv.seller?.signatureImage) {
+    sigHtml = `<img src="${inv.seller.signatureImage}" style="max-height:85px;max-width:200px;object-fit:contain;position:absolute;bottom:0;left:0" alt="امضا">`;
   } else {
-    sigHtml = `<div style="border-bottom:1px solid #444;width:190px;height:1px;position:absolute;bottom:15px;left:0"></div>`;
+    sigHtml = `<div style="border-bottom:0px solid #444;width:190px;height:0px;position:absolute;bottom:0px;left:0"></div>`;
   }
   
   // Generate items HTML
@@ -341,7 +381,7 @@ function renderPreview() {
   const buyerBox = makePartyBox('خریدار', inv.buyer);
   
   // Build table header based on VAT enabled
-  const taxHeader = inv.vatEnabled ? '<th style="width:10%;text-align:center">جمع عوارض و مالیات</th>' : '';
+  const taxHeader = inv.vatEnabled ? `<th style="width:10%;text-align:center;background:${sectionHeaderBg}">جمع عوارض و مالیات</th>` : '';
   const taxFooterCol = inv.vatEnabled ? '<td style="text-align:center;font-weight:bold;width:10%"></td>' : '';
   
   printArea.innerHTML = `
@@ -377,16 +417,16 @@ function renderPreview() {
 
     <table style="margin-top:6px;width:100%;table-layout:fixed">
       <thead>
-        <tr>
-          <th style="width:4%;text-align:center">ردیف</th>
-          <th style="width:35%">شرح کالا/خدمات</th>
-          <th style="width:10%;text-align:center">مقدار</th>
-          <th style="width:8%;text-align:center">واحد</th>
-          <th style="width:10%;text-align:center">مبلغ واحد</th>
-          <th style="width:10%;text-align:center">مبلغ تخفیف</th>
-          ${taxHeader}
-          <th style="width:10%;text-align:center">جمع کل</th>
-        </tr>
+        <tr style="background:${sectionHeaderBg}">
+                  <th style="width:4%;text-align:center;background:${sectionHeaderBg}">ردیف</th>
+                  <th style="width:35%;background:${sectionHeaderBg}">شرح کالا/خدمات</th>
+                  <th style="width:10%;text-align:center;background:${sectionHeaderBg}">مقدار</th>
+                  <th style="width:8%;text-align:center;background:${sectionHeaderBg}">واحد</th>
+                  <th style="width:10%;text-align:center;background:${sectionHeaderBg}">مبلغ واحد</th>
+                  <th style="width:10%;text-align:center;background:${sectionHeaderBg}">مبلغ تخفیف</th>
+                  ${taxHeader}
+                  <th style="width:10%;text-align:center;background:${sectionHeaderBg}">جمع کل</th>
+                </tr>
       </thead>
       <tbody>
         ${itemsHtml}
@@ -410,11 +450,11 @@ function renderPreview() {
     <div class="sign-area" style="margin-top:20px;font-size:10px">
       <div style="display:flex;justify-content:space-between">
         <div style="text-align:right;margin-right:40px"><strong>مهر و امضای فروشنده</strong></div>
-        <div style="position:relative;height:80px;margin-right:150px">${sigHtml}</div>
+        <div style="position:relative;height:80px;margin-right:100px;margin-top:15px">${sigHtml}</div>
       </div>
       <div style="display:flex;justify-content:space-between;margin-top:8px;position:relative;min-height:100px">
-        <div style="text-align:left;font-size:10px;position:relative">
-          <div style="text-align:left;margin-left:40px"><strong>مهر و امضای خریدار</strong></div>
+        <div style="text-align:right;font-size:10px;position:relative;margin-left:40px">
+          <div style="text-align:right"><strong>مهر و امضای خریدار</strong></div>
           
         </div>
       </div>
@@ -456,17 +496,20 @@ defineExpose({ renderPreview });
     </div>
 
     <!-- Scrollable outer wrapper for small screens -->
-    <div class="scroll-wrapper">
-      <!-- Zoom Wrapper - applies scale transform for preview only -->
-      <div class="zoom-wrapper" :style="zoomStyle">
-        <!-- A4 Preview Container -->
-        <div class="a4-container">
-          <div id="print-area" class="invoice-preview" dir="rtl">
-            <!-- Preview will be rendered here -->
-            <div class="text-center py-8" style="color:var(--muted)">
-              <i class="fa-solid fa-file-invoice text-4xl mb-3"></i>
-              <p>پیش‌نمایش پیش‌فاکتور آماده است</p>
-              <p class="text-xs mt-1">برای مشاهده جزئیات، روی دکمه "نمایش پیش‌نمایش" کلیک کنید</p>
+    <div ref="scrollWrapper" class="scroll-wrapper">
+      <!-- Zoom Scale Container - provides actual size for scrolling -->
+      <div class="zoom-scale-container" :style="{ width: A4_WIDTH * totalScale + 'px', height: A4_HEIGHT * totalScale + 'px' }">
+        <!-- Zoom Wrapper - applies scale transform for preview only -->
+        <div class="zoom-wrapper" :style="zoomStyle">
+          <!-- A4 Preview Container -->
+          <div class="a4-container">
+            <div id="print-area" class="invoice-preview" dir="rtl">
+              <!-- Preview will be rendered here -->
+              <div class="text-center py-8" style="color:var(--muted)">
+                <i class="fa-solid fa-file-invoice text-4xl mb-3"></i>
+                <p>پیش‌نمایش پیش‌فاکتور آماده است</p>
+                <p class="text-xs mt-1">برای مشاهده جزئیات، روی دکمه "نمایش پیش‌نمایش" کلیک کنید</p>
+              </div>
             </div>
           </div>
         </div>
@@ -515,7 +558,7 @@ defineExpose({ renderPreview });
   gap: 8px;
   margin-bottom: 12px;
   padding: 8px;
-  background: #f8f9fa;
+  background: var(--card);
   border-radius: 8px;
   justify-content: center;
 }
@@ -523,8 +566,9 @@ defineExpose({ renderPreview });
 .zoom-btn {
   width: 32px;
   height: 32px;
-  border: 1px solid #ddd;
-  background: white;
+  border: 1px solid var(--card-border);
+  background: var(--card);
+  color: var(--accent);
   border-radius: 4px;
   font-size: 18px;
   font-weight: bold;
@@ -536,12 +580,12 @@ defineExpose({ renderPreview });
 }
 
 .zoom-btn:hover {
-  background: #e9ecef;
-  border-color: #92400E;
+  background: var(--accent-light);
+  border-color: var(--accent);
 }
 
 .zoom-btn:hover:not(:disabled) {
-  color: #92400E;
+  color: var(--accent);
 }
 
 .zoom-level {
@@ -549,7 +593,7 @@ defineExpose({ renderPreview });
   font-weight: 600;
   min-width: 60px;
   text-align: center;
-  color: #333;
+  color: var(--fg);
 }
 
 .reset-btn {
@@ -562,7 +606,14 @@ defineExpose({ renderPreview });
   overflow-x: auto;
   overflow-y: auto;
   display: flex;
-  justify-content: center;
+  justify-content: flex-start;
+}
+
+/* Zoom Scale Container - provides actual size for scrolling based on zoom level */
+.zoom-scale-container {
+  display: flex;
+  justify-content: flex-start;
+  align-items: flex-start;
 }
 
 /* Zoom Wrapper - applies scale transform for preview only */
@@ -572,7 +623,7 @@ defineExpose({ renderPreview });
   display: flex;
   justify-content: center;
   align-items: flex-start;
-  transform-origin: top center;
+  transform-origin: top right;
 }
 
 /* A4 Container - fixed landscape dimensions */

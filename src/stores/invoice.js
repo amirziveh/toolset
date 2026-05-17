@@ -33,7 +33,8 @@ const defaultInvoice = {
     tel: '',
     fax: '',
     logoImage: '',
-    logoColor: ''
+    logoColor: '',
+    signatureImage: ''
   },
   buyer: {
     name: '',
@@ -72,7 +73,6 @@ const defaultInvoice = {
   deliveryTerms: '',
   description: '',
   additionalDescription: '',
-  signatureImage: '',
   showToman: true,
   currency: 'IRR',
   showSellerNameLogo: true

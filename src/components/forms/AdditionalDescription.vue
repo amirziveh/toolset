@@ -47,7 +47,6 @@ const toolbarButtons = [
   { name: 'italic', icon: 'italic', label: 'مورب' },
   { name: 'underline', icon: 'underline', label: 'زیرخط' },
   { name: 'bulletList', icon: 'list-ul', label: 'لیست نقطه‌ای' },
-  { name: 'orderedList', icon: 'list-ol', label: 'لیست شماره‌دار' }
 ];
 
 // Handle toolbar button clicks
@@ -69,9 +68,6 @@ function onToolbarButtonClick(buttonName) {
     case 'bulletList':
       chain.toggleList('bulletList');
       break;
-    case 'orderedList':
-      chain.toggleList('orderedList');
-      break;
   }
   
   chain.run();
@@ -85,35 +81,23 @@ function onToolbarButtonClick(buttonName) {
     </h3>
     
     <!-- Editor Toolbar -->
-    <div class="flex flex-wrap gap-1 mb-2 p-2 rounded-lg" style="background:var(--input-bg);border:1px solid var(--card-border)">
+    <div class="flex flex-wrap justify-center gap-1 mb-2 p-2 rounded-lg" style="background:var(--input-bg);border:1px solid var(--card-border)">
       <button
         v-for="btn in toolbarButtons"
         :key="btn.name"
         @click="onToolbarButtonClick(btn.name)"
         :class="[
-          'px-2 py-1 text-xs rounded border transition-all',
+          'px-4 py-2 text-sm rounded-xl border transition-all min-w-[44px] min-h-[44px] shadow-sm shadow-black/5 toolbar-btn',
           editor?.isActive(btn.name)
-            ? 'border-blue-500 bg-blue-100 dark:bg-blue-900/30'
-            : 'border-transparent hover:bg-gray-100 dark:hover:bg-gray-800'
+            ? 'bg-[var(--accent)]/20 border-[var(--accent)]/30'
+            : 'border-transparent hover:scale-[1.02] transition-transform'
         ]"
         :title="btn.label"
+        :style="!editor?.isActive(btn.name) ? 'background:color-mix(in srgb, var(--card) 10%, transparent);border-color:color-mix(in srgb, var(--card-border) 20%, transparent);-webkit-backdrop-filter: blur(12px);backdrop-filter: blur(12px)' : undefined"
       >
         <i :class="['fa-solid fa-' + btn.icon, btn.name === 'bulletList' ? 'fa-list-ul' : btn.name === 'orderedList' ? 'fa-list-ol' : btn.icon]"></i>
       </button>
       
-      <!-- HTML View Toggle -->
-      <button
-        @click="toggleHtmlView"
-        :class="[
-          'px-2 py-1 text-xs rounded border transition-all ml-auto',
-          showHtmlView 
-            ? 'border-green-500 bg-green-100 dark:bg-green-900/30' 
-            : 'border-transparent hover:bg-gray-100 dark:hover:bg-gray-800'
-        ]"
-        title="نمایش HTML"
-      >
-        <i class="fa-solid fa-code"></i>
-      </button>
     </div>
     
     <!-- Editor Content -->
@@ -139,6 +123,11 @@ function onToolbarButtonClick(buttonName) {
 </template>
 
 <style scoped>
+/* Toolbar button icon color */
+:deep(.toolbar-btn i) {
+  color: var(--fg);
+}
+
 /* Tiptap editor styles */
 :deep(.ProseMirror) {
   min-height: 200px;

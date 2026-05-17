@@ -1,11 +1,12 @@
 <script setup>
-import { ref, computed, watch } from 'vue';
+import { ref, computed } from 'vue';
 import { useInvoiceStore } from '@/stores/invoice';
 import { formatCurrency, formatNum, currencySymbols } from '@/utils/number-format';
 
+const emit = defineEmits(['load-invoice', 'request-delete']);
+
 const store = useInvoiceStore();
 const searchQuery = ref('');
-const deleteTargetId = ref(null);
 
 // Filter invoices based on search
 const filteredInvoices = computed(() => {
@@ -47,25 +48,9 @@ function duplicateInvoice(id) {
 
 // Request delete
 function requestDelete(id) {
-  deleteTargetId.value = id;
-  // Emit event to show delete modal
-  emit('request-delete');
+  // Emit event to show delete modal, passing the id
+  emit('request-delete', id);
 }
-
-// Confirm delete
-function confirmDelete() {
-  if (deleteTargetId.value) {
-    store.deleteFromHistory(deleteTargetId.value);
-    deleteTargetId.value = null;
-  }
-}
-
-const emit = defineEmits(['load-invoice', 'request-delete']);
-
-// Watch for changes to trigger save
-watch(() => store.savedInvoices, () => {
-  store.saveInvoicesToStorage();
-}, { deep: true });
 </script>
 
 <template>

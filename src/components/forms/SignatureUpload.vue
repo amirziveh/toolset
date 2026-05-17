@@ -44,14 +44,18 @@ function processFile(file) {
   
   const reader = new FileReader();
   reader.onload = function(e) {
-    store.currentInvoice.signatureImage = e.target.result;
+    store.currentInvoice.seller.signatureImage = e.target.result;
+    // Auto-save signature to localStorage for persistence
+    store.saveDefaultSeller();
   };
   reader.readAsDataURL(file);
 }
 
 // Remove signature
 function removeSignature() {
-  store.currentInvoice.signatureImage = '';
+  store.currentInvoice.seller.signatureImage = '';
+  // Auto-save after removal
+  store.saveDefaultSeller();
   if (fileInput.value) {
     fileInput.value.value = '';
   }
@@ -70,7 +74,7 @@ function removeSignature() {
       @drop="handleDrop"
     >
       <!-- Placeholder (shown when no signature) -->
-      <div v-if="!store.currentInvoice.signatureImage" class="text-center">
+      <div v-if="!store.currentInvoice.seller.signatureImage" class="text-center">
         <i class="fa-solid fa-cloud-arrow-up text-2xl mb-2" style="color:var(--muted)"></i>
         <p class="text-sm font-semibold" style="color:var(--muted)">کلیک کنید یا تصویر را بکشید و رها کنید</p>
         <p class="text-xs mt-1" style="color:var(--input-border)">PNG یا JPG</p>
@@ -78,9 +82,9 @@ function removeSignature() {
       
       <!-- Preview (shown when signature exists) -->
       <div v-else class="text-center">
-        <img 
-          :src="store.currentInvoice.signatureImage" 
-          class="max-h-28 mx-auto rounded" 
+        <img
+          :src="store.currentInvoice.seller.signatureImage"
+          class="max-h-28 max-w-full mx-auto rounded object-contain"
           alt="پیش‌نمایش امضا"
         >
         <p class="text-xs mt-2" style="color:var(--muted)">برای جایگزینی کلیک کنید</p>
@@ -97,9 +101,9 @@ function removeSignature() {
     >
     
     <!-- Remove button -->
-    <button 
-      v-if="store.currentInvoice.signatureImage"
-      @click="removeSignature" 
+    <button
+      v-if="store.currentInvoice.seller.signatureImage"
+      @click="removeSignature"
       class="btn btn-danger btn-sm mt-2"
     >
       <i class="fa-solid fa-trash-can"></i> حذف امضا
