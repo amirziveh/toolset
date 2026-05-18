@@ -1,5 +1,6 @@
 import { useInvoiceStore } from '@/stores/invoice';
 import { formatCurrency, formatNum, formatToman, amountToWords, safeNum, currencySymbols } from '@/utils/number-format';
+import { generateInvoiceHTML } from '@/utils/invoiceTemplate';
 
 /**
  * Composable for export functionality (PDF, PNG)
@@ -48,70 +49,63 @@ export function useExport() {
   };
 
   /**
+   * Create a clean off-screen container for export
+   * @param {object} inv - Invoice object
+   * @returns {HTMLElement} Container element with invoice HTML
+   */
+  const createExportContainer = (inv) => {
+    const container = document.createElement('div');
+    container.style.cssText = 'position:fixed; left:-9999px; direction:rtl; font-family:\'IRANSansX\', sans-serif;';
+    container.innerHTML = generateInvoiceHTML(inv);
+    
+    // Only set direction and font-family on elements that don't have explicit styles
+    // This preserves position:absolute for signature elements
+    container.querySelectorAll('*').forEach(child => {
+      if (!child.style.direction) {
+        child.style.direction = 'rtl';
+      }
+      if (!child.style.fontFamily) {
+        child.style.fontFamily = "'IRANSansX', sans-serif";
+      }
+    });
+    
+    return container;
+  };
+
+  /**
    * Export invoice as PNG image
    */
   const exportImage = async () => {
     const html2canvas = (await import('html2canvas')).default;
     
-    const element = document.getElementById('print-area');
-    if (!element) {
-      throw new Error('Print area not found');
+    const inv = store.currentInvoice;
+    if (!inv) {
+      throw new Error('No invoice data available');
     }
 
-    // Wait for fonts to load and add small delay
+    // Wait for fonts to load
     await document.fonts.ready;
-    await new Promise(r => setTimeout(r, 800));
-
-    // Ensure RTL direction
-    element.style.direction = 'rtl';
-    element.style.unicodeBidi = 'embed';
-    element.querySelectorAll('*').forEach(child => {
-      if (!['INPUT', 'TEXTAREA', 'SELECT'].includes(child.tagName)) {
-        child.style.direction = 'rtl';
-        child.style.unicodeBidi = 'embed';
-        child.style.fontFamily = "'Vazirmatn', sans-serif";
-      }
-    });
 
     showToast('در حال تولید تصویر...', 'info');
 
     try {
-      const canvas = await html2canvas(element, {
+      // Create clean off-screen container with A4 dimensions
+      const container = createExportContainer(inv);
+      container.style.width = '1123px';
+      container.style.height = '794px';
+      document.body.appendChild(container);
+
+      const canvas = await html2canvas(container, {
         scale: 2,
         useCORS: true,
-        logging: false,
-        backgroundColor: '#ffffff',
-        letterRendering: false,
-        allowTaint: true,
-        foreignObjectRendering: false,
-        onclone: function(clonedDoc) {
-          const clonedEl = clonedDoc.getElementById('print-area');
-          if (clonedEl) {
-            clonedEl.style.direction = 'rtl';
-            clonedEl.style.unicodeBidi = 'embed';
-            clonedEl.querySelectorAll('*').forEach(child => {
-              if (!['INPUT', 'TEXTAREA', 'SELECT'].includes(child.tagName)) {
-                child.style.direction = 'rtl';
-                child.style.unicodeBidi = 'embed';
-                child.style.fontFamily = "'Vazirmatn', sans-serif";
-              }
-            });
-            // Force vertical alignment in cloned table cells
-            clonedEl.querySelectorAll('th, td').forEach(cell => {
-              cell.style.display = 'table-cell';
-              cell.style.verticalAlign = 'middle';
-              cell.style.lineHeight = '1';
-              cell.style.paddingTop = '10px';
-              cell.style.paddingBottom = '10px';
-            });
-          }
-          clonedDoc.documentElement.setAttribute('dir', 'rtl');
-          clonedDoc.body.style.direction = 'rtl';
-        }
+        backgroundColor: '#ffffff'
       });
 
+      // Clean up
+      document.body.removeChild(container);
+
       const link = document.createElement('a');
-      link.download = (store.currentInvoice?.invoiceNumber || 'proforma') + '.png';
+      link.download = (inv?.invoiceNumber || 'proforma') + '.png';
       link.href = canvas.toDataURL('image/png');
       document.body.appendChild(link);
       link.click();
@@ -131,51 +125,31 @@ export function useExport() {
     const { jsPDF } = await import('jspdf');
     const html2canvas = (await import('html2canvas')).default;
     
-    const element = document.getElementById('print-area');
-    if (!element) {
-      throw new Error('Print area not found');
+    const inv = store.currentInvoice;
+    if (!inv) {
+      throw new Error('No invoice data available');
     }
 
-    // Wait for fonts to load and add small delay
+    // Wait for fonts to load
     await document.fonts.ready;
-    await new Promise(r => setTimeout(r, 800));
 
     showToast('در حال تولید PDF...', 'info');
 
     try {
-      const canvas = await html2canvas(element, {
+      // Create clean off-screen container with A4 dimensions
+      const container = createExportContainer(inv);
+      container.style.width = '1123px';
+      container.style.height = '794px';
+      document.body.appendChild(container);
+
+      const canvas = await html2canvas(container, {
         scale: 2,
         useCORS: true,
-        logging: false,
-        backgroundColor: '#ffffff',
-        letterRendering: true,
-        allowTaint: true,
-        foreignObjectRendering: false,
-        onclone: function(clonedDoc) {
-          const clonedEl = clonedDoc.getElementById('print-area');
-          if (clonedEl) {
-            clonedEl.style.direction = 'rtl';
-            clonedEl.style.unicodeBidi = 'embed';
-            clonedEl.querySelectorAll('*').forEach(child => {
-              if (!['INPUT', 'TEXTAREA', 'SELECT'].includes(child.tagName)) {
-                child.style.direction = 'rtl';
-                child.style.unicodeBidi = 'embed';
-                child.style.fontFamily = "'Vazirmatn', sans-serif";
-              }
-            });
-            // Force vertical alignment in cloned table cells
-            clonedEl.querySelectorAll('th, td').forEach(cell => {
-              cell.style.display = 'table-cell';
-              cell.style.verticalAlign = 'middle';
-              cell.style.lineHeight = '1';
-              cell.style.paddingTop = '10px';
-              cell.style.paddingBottom = '10px';
-            });
-          }
-          clonedDoc.documentElement.setAttribute('dir', 'rtl');
-          clonedDoc.body.style.direction = 'rtl';
-        }
+        backgroundColor: '#ffffff'
       });
+
+      // Clean up
+      document.body.removeChild(container);
 
       const pdf = new jsPDF({
         unit: 'mm',
@@ -204,7 +178,7 @@ export function useExport() {
         heightLeft -= pageHeight;
       }
       
-      pdf.save((store.currentInvoice?.invoiceNumber || 'proforma') + '.pdf');
+      pdf.save((inv?.invoiceNumber || 'proforma') + '.pdf');
       showToast('PDF با موفقیت ذخیره شد', 'success');
     } catch (err) {
       console.error(err);
@@ -214,60 +188,49 @@ export function useExport() {
 
   /**
    * Print the invoice
-   * Uses a clone approach to handle the nested DOM structure in Vue
    */
   const printInvoice = () => {
-    const printArea = document.getElementById('print-area');
-    if (!printArea) return;
+    const inv = store.currentInvoice;
+    if (!inv) return;
     
-    // Create a clone of the print area
-    const clone = printArea.cloneNode(true);
-    clone.id = 'print-area-clone';
+    // Generate HTML using the template function
+    const invoiceHtml = generateInvoiceHTML(inv);
     
-    // Add clone to body
-    document.body.appendChild(clone);
+    // Open print window
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      showToast('لطفاً از بلوکهای پنجره جلوگیری نشده استفاده کنید', 'error');
+      return;
+    }
     
-    // Add print-specific style
-    const style = document.createElement('style');
-    style.id = 'temp-print-style';
-    style.textContent = `
-      @media print {
-        body > *:not(#print-area-clone) { display: none !important; }
-        #print-area-clone {
-          display: block !important;
-          position: static !important;
-          width: 100% !important;
-        }
-        .invoice-preview {
-          box-shadow: none !important;
-          margin: 0 !important;
-          padding: 0 !important;
-          width: 1123px !important;
-          height: 794px !important;
-          max-width: 1123px !important;
-        }
-        .a4-container {
-          padding: 0 !important;
-          background: white !important;
-          box-shadow: none !important;
-        }
-      }
-    `;
-    document.head.appendChild(style);
+    // Write HTML with IRANSansX font
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html dir="rtl">
+      <head>
+        <meta charset="UTF-8">
+        <title>پیش فاکتور</title>
+        <style>
+          @media print {
+            body { margin: 0; padding: 0; font-family: 'IRANSansX', sans-serif; direction: rtl; }
+            .invoice-preview { width: 1123px; height: 794px; margin: 0; box-shadow: none; }
+            .a4-container { padding: 0; background: white; }
+          }
+        </style>
+      </head>
+      <body style="font-family: 'IRANSansX', sans-serif; direction: rtl;">
+        <div class="invoice-preview a4-container">
+          ${invoiceHtml}
+        </div>
+      </body>
+      </html>
+    `);
     
-    // Print
-    window.print();
+    printWindow.document.close();
     
-    // Clean up after printing
-    setTimeout(() => {
-      if (document.body.contains(clone)) {
-        document.body.removeChild(clone);
-      }
-      const tempStyle = document.getElementById('temp-print-style');
-      if (tempStyle) {
-        tempStyle.remove();
-      }
-    }, 500);
+    // Print and close
+    printWindow.print();
+    printWindow.close();
   };
 
   /**

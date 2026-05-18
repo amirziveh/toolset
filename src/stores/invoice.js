@@ -82,7 +82,8 @@ export const useInvoiceStore = defineStore('invoice', {
   state: () => ({
       currentInvoice: JSON.parse(JSON.stringify(defaultInvoice)),
       savedInvoices: [],
-      deleteTargetId: null
+      deleteTargetId: null,
+      dark: false
     }),
 
   getters: {
@@ -311,9 +312,11 @@ export const useInvoiceStore = defineStore('invoice', {
       if (isDark) {
         document.documentElement.classList.remove('dark');
         localStorage.setItem('domestic_dark', '0');
+        this.dark = false;
       } else {
         document.documentElement.classList.add('dark');
         localStorage.setItem('domestic_dark', '1');
+        this.dark = true;
       }
     },
 
@@ -322,6 +325,10 @@ export const useInvoiceStore = defineStore('invoice', {
       const saved = localStorage.getItem('domestic_dark');
       if (saved === '1' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
         document.documentElement.classList.add('dark');
+        this.dark = true;
+      } else {
+        document.documentElement.classList.remove('dark');
+        this.dark = false;
       }
     },
 
