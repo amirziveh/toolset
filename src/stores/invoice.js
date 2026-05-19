@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia';
+import { saveDefaultSeller as saveSeller, loadDefaultSeller as loadSeller } from '@/composables/useLocalStorage';
 import { 
   gregorianToShamsi, 
   getTodayShamsi, 
@@ -34,7 +35,8 @@ const defaultInvoice = {
     fax: '',
     logoImage: '',
     logoColor: '',
-    signatureImage: ''
+    signatureImage: '',
+    letterheadImage: ''
   },
   buyer: {
     name: '',
@@ -201,7 +203,13 @@ export const useInvoiceStore = defineStore('invoice', {
     initInvoice() {
       this.currentInvoice = JSON.parse(JSON.stringify(defaultInvoice));
       const ds = this.loadDefaultSeller();
-      if (ds) this.currentInvoice.seller = ds;
+      if (ds) {
+        this.currentInvoice.seller = ds;
+        // Sync seller's letterhead to invoice-level letterheadImage if present
+        if (ds.letterheadImage) {
+          this.currentInvoice.letterheadImage = ds.letterheadImage;
+        }
+      }
       const count = this.savedInvoices.length + 1;
       this.currentInvoice.invoiceNumber = 'PF-' + getTodayShamsi().slice(0, 7).replace('/', '') + '-' + String(count).padStart(3, '0');
       this.currentInvoice.invoiceDate = getTodayShamsi();
@@ -349,17 +357,12 @@ export const useInvoiceStore = defineStore('invoice', {
     // Save default seller
     saveDefaultSeller() {
       if (!this.currentInvoice?.seller) return;
-      localStorage.setItem('domestic_default_seller2', JSON.stringify(this.currentInvoice.seller));
+      saveSeller(this.currentInvoice.seller);
     },
 
     // Load default seller
     loadDefaultSeller() {
-      try {
-        const d = localStorage.getItem('domestic_default_seller2');
-        return d ? JSON.parse(d) : null;
-      } catch (e) {
-        return null;
-      }
+      return loadSeller();
     },
 
     // Save invoices to localStorage

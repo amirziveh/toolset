@@ -100,6 +100,17 @@ function calculateFitScale() {
 // Total scale combines fitScale and zoomLevel
 const totalScale = computed(() => fitScale.value * zoomLevel.value);
 
+// Convert screen coordinates to unscaled container coordinates
+function screenToScaledCoords(clientX, clientY) {
+  const zoomWrapper = document.querySelector('.zoom-wrapper');
+  if (!zoomWrapper) return { x: clientX, y: clientY };
+  
+  const rect = zoomWrapper.getBoundingClientRect();
+  const x = (clientX - rect.left) / totalScale.value;
+  const y = (clientY - rect.top) / totalScale.value;
+  return { x, y };
+}
+
 // Get current dimensions for container
 const currentDimensions = computed(() => {
   const dims = letterheadDimensions.value;
@@ -257,14 +268,13 @@ function debouncedRenderPreview() {
 
 // Drag handlers for proforma content
 function handleProformaDragStart(event) {
-  if (!store.currentInvoice.showLetterhead) return;
-  
   const proformaContent = document.querySelector('#print-area .proforma-content');
   if (!proformaContent) return;
   
   isDragging.value = true;
-  dragStartX.value = event.clientX - (store.currentInvoice.proformaX || 0);
-  dragStartY.value = event.clientY - (store.currentInvoice.proformaY || 0);
+  const scaled = screenToScaledCoords(event.clientX, event.clientY);
+  dragStartX.value = scaled.x - (store.currentInvoice.proformaX || 0);
+  dragStartY.value = scaled.y - (store.currentInvoice.proformaY || 0);
   
   document.addEventListener('mousemove', handleProformaDragMove);
   document.addEventListener('mouseup', handleProformaDragEnd);
@@ -274,8 +284,9 @@ function handleProformaDragStart(event) {
 function handleProformaDragMove(event) {
   if (!isDragging.value) return;
   
-  const newX = event.clientX - dragStartX.value;
-  const newY = event.clientY - dragStartY.value;
+  const scaled = screenToScaledCoords(event.clientX, event.clientY);
+  const newX = scaled.x - dragStartX.value;
+  const newY = scaled.y - dragStartY.value;
   
   store.currentInvoice.proformaX = Math.round(newX);
   store.currentInvoice.proformaY = Math.round(newY);
@@ -297,12 +308,13 @@ function handleProformaDragEnd() {
 
 // Touch support for mobile
 function handleProformaTouchStart(event) {
-  if (!store.currentInvoice.showLetterhead || event.touches.length !== 1) return;
+  if (event.touches.length !== 1) return;
   
   const touch = event.touches[0];
   isDragging.value = true;
-  dragStartX.value = touch.clientX - (store.currentInvoice.proformaX || 0);
-  dragStartY.value = touch.clientY - (store.currentInvoice.proformaY || 0);
+  const scaled = screenToScaledCoords(touch.clientX, touch.clientY);
+  dragStartX.value = scaled.x - (store.currentInvoice.proformaX || 0);
+  dragStartY.value = scaled.y - (store.currentInvoice.proformaY || 0);
   
   document.addEventListener('touchmove', handleProformaTouchMove, { passive: false });
   document.addEventListener('touchend', handleProformaTouchEnd);
@@ -313,8 +325,9 @@ function handleProformaTouchMove(event) {
   if (!isDragging.value || event.touches.length !== 1) return;
   
   const touch = event.touches[0];
-  const newX = touch.clientX - dragStartX.value;
-  const newY = touch.clientY - dragStartY.value;
+  const scaled = screenToScaledCoords(touch.clientX, touch.clientY);
+  const newX = scaled.x - dragStartX.value;
+  const newY = scaled.y - dragStartY.value;
   
   store.currentInvoice.proformaX = Math.round(newX);
   store.currentInvoice.proformaY = Math.round(newY);
@@ -353,15 +366,14 @@ function updateCustomText(id, updates) {
 
 // Drag handlers for custom texts
 function handleCustomTextDragStart(event, item) {
-  if (!store.currentInvoice.showLetterhead) return;
-
   const element = event.currentTarget;
   if (!element) return;
 
   isDraggingCustomText.value = true;
   draggingCustomTextId.value = item.id;
-  customTextDragStartX.value = event.clientX - (item.x || 0);
-  customTextDragStartY.value = event.clientY - (item.y || 0);
+  const scaled = screenToScaledCoords(event.clientX, event.clientY);
+  customTextDragStartX.value = scaled.x - (item.x || 0);
+  customTextDragStartY.value = scaled.y - (item.y || 0);
 
   document.addEventListener('mousemove', handleCustomTextDragMove);
   document.addEventListener('mouseup', handleCustomTextDragEnd);
@@ -371,8 +383,9 @@ function handleCustomTextDragStart(event, item) {
 function handleCustomTextDragMove(event) {
   if (!isDraggingCustomText.value || draggingCustomTextId.value === null) return;
 
-  const newX = event.clientX - customTextDragStartX.value;
-  const newY = event.clientY - customTextDragStartY.value;
+  const scaled = screenToScaledCoords(event.clientX, event.clientY);
+  const newX = scaled.x - customTextDragStartX.value;
+  const newY = scaled.y - customTextDragStartY.value;
 
   store.updateCustomText(draggingCustomTextId.value, { x: Math.round(newX), y: Math.round(newY) });
 
@@ -394,7 +407,7 @@ function handleCustomTextDragEnd() {
 
 // Touch support for custom texts
 function handleCustomTextTouchStart(event, item) {
-  if (!store.currentInvoice.showLetterhead || event.touches.length !== 1) return;
+  if (event.touches.length !== 1) return;
 
   const touch = event.touches[0];
   const element = event.currentTarget;
@@ -402,8 +415,9 @@ function handleCustomTextTouchStart(event, item) {
 
   isDraggingCustomText.value = true;
   draggingCustomTextId.value = item.id;
-  customTextDragStartX.value = touch.clientX - (item.x || 0);
-  customTextDragStartY.value = touch.clientY - (item.y || 0);
+  const scaled = screenToScaledCoords(touch.clientX, touch.clientY);
+  customTextDragStartX.value = scaled.x - (item.x || 0);
+  customTextDragStartY.value = scaled.y - (item.y || 0);
 
   document.addEventListener('touchmove', handleCustomTextTouchMove, { passive: false });
   document.addEventListener('touchend', handleCustomTextTouchEnd);
@@ -414,8 +428,9 @@ function handleCustomTextTouchMove(event) {
   if (!isDraggingCustomText.value || draggingCustomTextId.value === null || event.touches.length !== 1) return;
 
   const touch = event.touches[0];
-  const newX = touch.clientX - customTextDragStartX.value;
-  const newY = touch.clientY - customTextDragStartY.value;
+  const scaled = screenToScaledCoords(touch.clientX, touch.clientY);
+  const newX = scaled.x - customTextDragStartX.value;
+  const newY = scaled.y - customTextDragStartY.value;
 
   store.updateCustomText(draggingCustomTextId.value, { x: Math.round(newX), y: Math.round(newY) });
 
@@ -447,29 +462,27 @@ function renderPreview() {
   // Use the same template function as export — styles are self-contained now
   printArea.innerHTML = generateInvoiceHTML(inv);
   
-  // Attach drag events to proforma content if letterhead is shown
-  if (inv.showLetterhead && inv.letterheadImage) {
-    nextTick(() => {
-      const proformaContent = printArea.querySelector('.proforma-content');
-      if (proformaContent) {
-        proformaContent.style.cursor = 'move';
-        proformaContent.addEventListener('mousedown', handleProformaDragStart);
-        proformaContent.addEventListener('touchstart', handleProformaTouchStart, { passive: false });
-      }
+  // Attach drag events to proforma content and custom texts
+  nextTick(() => {
+    const proformaContent = printArea.querySelector('.proforma-content');
+    if (proformaContent) {
+      proformaContent.style.cursor = 'move';
+      proformaContent.addEventListener('mousedown', handleProformaDragStart);
+      proformaContent.addEventListener('touchstart', handleProformaTouchStart, { passive: false });
+    }
 
-      // Attach drag events to custom text elements
-      if (inv.customTexts && Array.isArray(inv.customTexts)) {
-        inv.customTexts.forEach(item => {
-          const customTextEl = printArea.querySelector(`[data-custom-text-id="${item.id}"]`);
-          if (customTextEl) {
-            customTextEl.style.cursor = 'move';
-            customTextEl.addEventListener('mousedown', (e) => handleCustomTextDragStart(e, item));
-            customTextEl.addEventListener('touchstart', (e) => handleCustomTextTouchStart(e, item), { passive: false });
-          }
-        });
-      }
-    });
-  }
+    // Attach drag events to custom text elements
+    if (inv.customTexts && Array.isArray(inv.customTexts)) {
+      inv.customTexts.forEach(item => {
+        const customTextEl = printArea.querySelector(`[data-custom-text-id="${item.id}"]`);
+        if (customTextEl) {
+          customTextEl.style.cursor = 'move';
+          customTextEl.addEventListener('mousedown', (e) => handleCustomTextDragStart(e, item));
+          customTextEl.addEventListener('touchstart', (e) => handleCustomTextTouchStart(e, item), { passive: false });
+        }
+      });
+    }
+  });
 }
 
 // Lifecycle hooks
@@ -695,13 +708,13 @@ defineExpose({ renderPreview });
           <div class="input-field">
             <label class="field-label">چرخش</label>
             <select v-model="store.currentInvoice.letterheadOrientation" @change="renderPreview" class="field-input">
-              <option value="portrait">عمودی</option>
-              <option value="landscape">افقی</option>
+              <option value="portrait">افقی</option>
+              <option value="landscape">عمودی</option>
             </select>
           </div>
 
           <!-- Scale -->
-          <div class="input-field">
+          <!-- <div class="input-field">
             <label class="field-label">مقیاس: {{ store.currentInvoice.letterheadScale }}%</label>
             <input 
               type="range" 
@@ -711,7 +724,7 @@ defineExpose({ renderPreview });
               @change="renderPreview"
               class="w-full"
             >
-          </div>
+          </div> -->
 
           <!-- Proforma Scale -->
           <div class="input-field">
@@ -773,14 +786,14 @@ defineExpose({ renderPreview });
                 <label class="field-label">متن</label>
                 <input type="text" :value="item.text" @input="updateCustomText(item.id, { text: $event.target.value })" class="field-input" placeholder="متن سفارشی">
               </div>
-              <div class="input-field">
+              <!-- <div class="input-field">
                 <label class="field-label">موقعیت X</label>
                 <input type="number" :value="item.x" @change="updateCustomText(item.id, { x: Number($event.target.value) })" class="field-input">
               </div>
               <div class="input-field">
                 <label class="field-label">موقعیت Y</label>
                 <input type="number" :value="item.y" @change="updateCustomText(item.id, { y: Number($event.target.value) })" class="field-input">
-              </div>
+              </div> -->
               <div class="input-field">
                 <label class="field-label">اندازه فونت</label>
                 <input type="number" :value="item.fontSize" @change="updateCustomText(item.id, { fontSize: Number($event.target.value) })" class="field-input" min="8" max="72">

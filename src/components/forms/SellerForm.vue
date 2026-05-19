@@ -1,9 +1,10 @@
 <script setup>
-import { ref, watch } from 'vue';
+import { ref, watch, nextTick } from 'vue';
 import { useInvoiceStore } from '@/stores/invoice';
 
 const store = useInvoiceStore();
 const logoInput = ref(null);
+const letterheadInput = ref(null);
 
 // Get dominant color from image
 function getDominantColor(img) {
@@ -74,6 +75,67 @@ function removeLogo() {
   store.currentInvoice.seller.logoImage = '';
   store.currentInvoice.seller.logoColor = '';
   if (logoInput.value) logoInput.value.value = '';
+}
+
+// Compress image before storing (resize to max 1200px width, quality 0.8)
+function compressImage(dataUrl, maxWidth = 1200, quality = 0.8) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      let width = img.width;
+      let height = img.height;
+      
+      // Calculate new dimensions maintaining aspect ratio
+      if (width > maxWidth) {
+        height = Math.round((maxWidth / width) * height);
+        width = maxWidth;
+      }
+      
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, width, height);
+      
+      // Use JPEG for better compression, or PNG for transparency
+      const outputFormat = img.type && img.type.includes('png') ? 'image/png' : 'image/jpeg';
+      resolve(canvas.toDataURL(outputFormat, quality));
+    };
+    img.src = dataUrl;
+  });
+}
+
+// Handle letterhead file upload
+async function handleLetterheadFile(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  
+  // Validate file size (max 5MB)
+  if (file.size > 5 * 1024 * 1024) {
+    alert('حجم فایل باید کمتر از ۵ مگابایت باشد');
+    return;
+  }
+  
+  const reader = new FileReader();
+  reader.onload = async function(e) {
+    // Compress the image before storing
+    const compressedDataUrl = await compressImage(e.target.result);
+    store.currentInvoice.seller.letterheadImage = compressedDataUrl;
+    // Also sync to invoice-level letterheadImage for live preview
+    store.currentInvoice.letterheadImage = compressedDataUrl;
+    // Auto-save letterhead to localStorage for persistence
+    store.saveDefaultSeller();
+  };
+  reader.readAsDataURL(file);
+}
+
+function removeLetterhead() {
+  store.currentInvoice.seller.letterheadImage = '';
+  store.currentInvoice.letterheadImage = null;
+  // Auto-save after removal
+  store.saveDefaultSeller();
+  if (letterheadInput.value) letterheadInput.value.value = '';
 }
 
 // Save as default seller
@@ -179,10 +241,41 @@ function saveDefaultSeller() {
           >
         </div>
       </div>
+      <div>
+        <label class="field-label">طرح سربرگ (Letterhead)</label>
+        <div class="flex gap-2 items-center">
+          <button
+            @click="letterheadInput?.click()"
+            class="btn btn-secondary btn-sm flex-shrink-0"
+          >
+            <i class="fa-solid fa-image"></i> انتخاب تصویر
+          </button>
+          <span class="text-xs truncate" style="color:var(--muted)">
+            {{ store.currentInvoice.seller.letterheadImage ? 'تصویر بارگذاری شده' : 'فایلی انتخاب نشده' }}
+          </span>
+          <button
+            v-if="store.currentInvoice.seller.letterheadImage"
+            @click="removeLetterhead"
+            class="btn btn-danger btn-sm flex-shrink-0"
+          >
+            <i class="fa-solid fa-trash-can"></i>
+          </button>
+        </div>
+        <p class="text-xs mt-1" style="color:var(--muted)">
+          <i class="fa-solid fa-info-circle"></i> این تصویر همراه با اطلاعات شرکت ذخیره شده و در سربرگ فاکتور نمایش داده می‌شود
+        </p>
+        <input
+          ref="letterheadInput"
+          type="file"
+          accept="image/*"
+          class="hidden"
+          @change="handleLetterheadFile"
+        >
+      </div>
       <div class="flex items-center gap-2">
         <label class="toggle-switch">
-          <input 
-            type="checkbox" 
+          <input
+            type="checkbox"
             v-model="store.currentInvoice.showSellerNameLogo"
           >
           <span class="toggle-slider"></span>

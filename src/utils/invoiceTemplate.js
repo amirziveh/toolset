@@ -602,7 +602,6 @@ export function generateInvoiceHTML(inv) {
     <style>${getInvoiceCSS(inv)}</style>
     <div class="invoice-root" ${hasLetterhead ? 'data-letterhead="true"' : ''} style="--proforma-x: ${proformaX}px; --proforma-y: ${proformaY}px; --proforma-scale: ${proformaScale};">
     <div class="proforma-content">
-    ${generateCustomTextsHTML(inv)}
     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">
       <div style="flex:1">${logoHtml}</div>
       <div style="text-align:center;flex:2;direction:rtl">
@@ -675,6 +674,7 @@ export function generateInvoiceHTML(inv) {
       </div>
     </div>
     </div>
+    ${generateCustomTextsHTML(inv)}
     </div>
   `;
   
