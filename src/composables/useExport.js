@@ -1,6 +1,6 @@
 import { useInvoiceStore } from '@/stores/invoice';
 import { formatCurrency, formatNum, formatToman, amountToWords, safeNum, currencySymbols } from '@/utils/number-format';
-import { generateInvoiceHTML } from '@/utils/invoiceTemplate';
+import { generateInvoiceHTML, generateExportHTML, getInvoiceCSS, getLetterheadDimensions, mmToPx } from '@/utils/invoiceTemplate';
 
 /**
  * Composable for export functionality (PDF, PNG)
@@ -49,6 +49,27 @@ export function useExport() {
   };
 
   /**
+   * Get page dimensions based on letterhead settings
+   * @param {object} inv - Invoice object
+   * @returns {object} { width, height } in mm
+   */
+  const getPageDimensions = (inv) => {
+    const settings = {
+      letterheadSize: inv?.letterheadSize || 'A4',
+      letterheadOrientation: inv?.letterheadOrientation || 'landscape',
+      letterheadWidth: inv?.letterheadWidth || 297,
+      letterheadHeight: inv?.letterheadHeight || 210
+    };
+    
+    const dims = getLetterheadDimensions(settings);
+    // Convert pixels back to mm (approximate)
+    return {
+      width: Math.round(dims.width / 3.78),
+      height: Math.round(dims.height / 3.78)
+    };
+  };
+
+  /**
    * Create a clean off-screen container for export
    * @param {object} inv - Invoice object
    * @returns {HTMLElement} Container element with invoice HTML
@@ -89,16 +110,21 @@ export function useExport() {
     showToast('در حال تولید تصویر...', 'info');
 
     try {
-      // Create clean off-screen container with A4 dimensions
+      // Create clean off-screen container
       const container = createExportContainer(inv);
-      container.style.width = '1123px';
-      container.style.height = '794px';
       document.body.appendChild(container);
 
       const canvas = await html2canvas(container, {
         scale: 2,
         useCORS: true,
-        backgroundColor: '#ffffff'
+        backgroundColor: '#ffffff',
+        // Allow content to be captured even if it's outside the initial bounds
+        windowWidth: container.scrollWidth,
+        windowHeight: container.scrollHeight,
+        x: 0,
+        y: 0,
+        width: container.scrollWidth,
+        height: container.scrollHeight
       });
 
       // Clean up
@@ -136,31 +162,45 @@ export function useExport() {
     showToast('در حال تولید PDF...', 'info');
 
     try {
-      // Create clean off-screen container with A4 dimensions
+      // Create clean off-screen container
       const container = createExportContainer(inv);
-      container.style.width = '1123px';
-      container.style.height = '794px';
       document.body.appendChild(container);
 
       const canvas = await html2canvas(container, {
         scale: 2,
         useCORS: true,
-        backgroundColor: '#ffffff'
+        backgroundColor: '#ffffff',
+        // Allow content to be captured even if it's outside the initial bounds
+        windowWidth: container.scrollWidth,
+        windowHeight: container.scrollHeight,
+        x: 0,
+        y: 0,
+        width: container.scrollWidth,
+        height: container.scrollHeight
       });
 
       // Clean up
       document.body.removeChild(container);
 
+      // Determine PDF format and orientation
+      const size = inv?.letterheadSize || 'A4';
+      const orientation = inv?.letterheadOrientation || 'landscape';
+      
       const pdf = new jsPDF({
         unit: 'mm',
-        format: 'a4',
-        orientation: 'landscape',
+        format: size.toLowerCase(),
+        orientation: orientation,
         hotfixes: ["px_scaling"],
         usePureCanvas: true
       });
 
-      const imgWidth = 297; // A4 landscape width in mm
-      const pageHeight = 210; // A4 landscape height in mm
+      const imgWidth = orientation === 'landscape' 
+        ? (size === 'A4' ? 297 : size === 'A5' ? 210 : size === 'Letter' ? 279 : size === 'Legal' ? 356 : 297)
+        : (size === 'A4' ? 210 : size === 'A5' ? 148 : size === 'Letter' ? 216 : size === 'Legal' ? 216 : 210);
+      const pageHeight = orientation === 'landscape'
+        ? (size === 'A4' ? 210 : size === 'A5' ? 148 : size === 'Letter' ? 279 : size === 'Legal' ? 216 : 210)
+        : (size === 'A4' ? 297 : size === 'A5' ? 210 : size === 'Letter' ? 279 : size === 'Legal' ? 356 : 297);
+      
       const imgHeight = (canvas.height * imgWidth) / canvas.width;
       
       let heightLeft = imgHeight;
@@ -193,8 +233,8 @@ export function useExport() {
     const inv = store.currentInvoice;
     if (!inv) return;
     
-    // Generate HTML using the template function
-    const invoiceHtml = generateInvoiceHTML(inv);
+    // Generate export HTML with letterhead support
+    const exportHtml = generateExportHTML(inv);
     
     // Open print window
     const printWindow = window.open('', '_blank');
@@ -203,34 +243,33 @@ export function useExport() {
       return;
     }
     
-    // Write HTML with IRANSansX font
-    printWindow.document.write(`
-      <!DOCTYPE html>
-      <html dir="rtl">
-      <head>
-        <meta charset="UTF-8">
-        <title>پیش فاکتور</title>
-        <style>
-          @media print {
-            body { margin: 0; padding: 0; font-family: 'IRANSansX', sans-serif; direction: rtl; }
-            .invoice-preview { width: 1123px; height: 794px; margin: 0; box-shadow: none; }
-            .a4-container { padding: 0; background: white; }
-          }
-        </style>
-      </head>
-      <body style="font-family: 'IRANSansX', sans-serif; direction: rtl;">
-        <div class="invoice-preview a4-container">
-          ${invoiceHtml}
-        </div>
-      </body>
-      </html>
-    `);
-    
+    // Write the complete export HTML
+    printWindow.document.write(exportHtml);
     printWindow.document.close();
     
     // Print and close
     printWindow.print();
     printWindow.close();
+  };
+
+  /**
+   * Download invoice as HTML file
+   */
+  const downloadHTML = () => {
+    const inv = store.currentInvoice;
+    if (!inv) return;
+    
+    // Generate export HTML with letterhead support
+    const exportHtml = generateExportHTML(inv);
+    
+    // Create blob and download
+    const blob = new Blob([exportHtml], { type: 'text/html;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = (inv?.invoiceNumber || 'proforma') + '.html';
+    link.click();
+    URL.revokeObjectURL(url);
   };
 
   /**
@@ -284,6 +323,7 @@ export function useExport() {
     exportImage,
     exportPDF,
     printInvoice,
+    downloadHTML,
     exportBackup,
     importBackup
   };

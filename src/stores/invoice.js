@@ -75,7 +75,21 @@ const defaultInvoice = {
   additionalDescription: '',
   showToman: true,
   currency: 'IRR',
-  showSellerNameLogo: true
+  showSellerNameLogo: true,
+  // Letterhead settings
+  letterheadImage: null,
+  letterheadSize: 'A4',
+  letterheadOrientation: 'landscape',
+  letterheadWidth: 297,
+  letterheadHeight: 210,
+  letterheadScale: 100,
+  showLetterhead: true,
+  // Proforma content positioning and scaling
+  proformaX: 0,
+  proformaY: 0,
+  proformaScale: 100,
+  // Custom text elements for letterhead
+  customTexts: []
 };
 
 export const useInvoiceStore = defineStore('invoice', {
@@ -401,6 +415,33 @@ export const useInvoiceStore = defineStore('invoice', {
     // Get currency symbol
     getCurrencySymbol(currency) {
       return currencySymbols[currency] || currency;
+    },
+
+    // Custom text actions for letterhead
+    addCustomText() {
+      if (!this.currentInvoice) return;
+      this.currentInvoice.customTexts.push({
+        id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+        text: 'متن سفارشی',
+        x: 0,
+        y: 0,
+        fontSize: 12,
+        color: '#000000',
+        isBold: false,
+        isItalic: false
+      });
+    },
+
+    updateCustomText(id, updates) {
+      if (!this.currentInvoice?.customTexts) return;
+      const target = this.currentInvoice.customTexts.find(ct => ct.id === id);
+      if (target) Object.assign(target, updates);
+    },
+
+    removeCustomText(id) {
+      if (!this.currentInvoice?.customTexts) return;
+      const idx = this.currentInvoice.customTexts.findIndex(ct => ct.id === id);
+      if (idx !== -1) this.currentInvoice.customTexts.splice(idx, 1);
     },
 
     // Update additional description

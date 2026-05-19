@@ -165,4 +165,9 @@ label.field-label{display:block;font-size:.7rem;font-weight:700;color:var(--mute
     width:100%!important;
     max-width:100%!important;
   }
+  /* Letterhead background print styles */
+  .invoice-root[data-letterhead]{
+    -webkit-print-color-adjust: exact;
+    color-adjust: exact;
+  }
 }

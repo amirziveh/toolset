@@ -14,11 +14,70 @@ import {
 } from '@/utils/number-format';
 
 /**
+ * Letterhead size presets in mm (width x height)
+ * For portrait orientation, these will be swapped
+ */
+export const LETTERHEAD_SIZES = {
+  A4: { width: 210, height: 297 },
+  A5: { width: 148, height: 210 },
+  Letter: { width: 216, height: 279 },
+  Legal: { width: 216, height: 356 },
+  Custom: { width: 297, height: 210 } // Default to A4
+};
+
+/**
+ * Convert mm to pixels (1mm ≈ 3.78px at 96 DPI)
+ * @param {number} mm - Millimeters
+ * @returns {number} Pixels
+ */
+export function mmToPx(mm) {
+  return Math.round(mm * 3.78);
+}
+
+/**
+ * Get letterhead dimensions based on settings
+ * @param {object} settings - Letterhead settings
+ * @returns {object} { width, height } in pixels
+ */
+export function getLetterheadDimensions(settings) {
+  const size = settings?.letterheadSize || 'A4';
+  const orientation = settings?.letterheadOrientation || 'portrait';
+  const customWidth = settings?.letterheadWidth || 297;
+  const customHeight = settings?.letterheadHeight || 210;
+  
+  let dims = LETTERHEAD_SIZES[size] || LETTERHEAD_SIZES.A4;
+  
+  // Override with custom dimensions if specified
+  if (size === 'Custom') {
+    dims = { width: customWidth, height: customHeight };
+  }
+  
+  // Swap for portrait orientation
+  if (orientation === 'portrait') {
+    dims = { width: dims.height, height: dims.width };
+  }
+  
+  return {
+    width: mmToPx(dims.width),
+    height: mmToPx(dims.height)
+  };
+}
+
+/**
  * Get CSS styles for invoice content rendering.
  * Single source of truth — used by both preview and export.
+ * @param {object} letterheadSettings - Optional letterhead settings
  * @returns {string} CSS string
  */
-export function getInvoiceCSS() {
+export function getInvoiceCSS(letterheadSettings = null) {
+  // Get dimensions based on letterhead settings
+  const dims = letterheadSettings && letterheadSettings.showLetterhead 
+    ? getLetterheadDimensions(letterheadSettings) 
+    : { width: mmToPx(297), height: mmToPx(210) };
+  
+  const hasLetterhead = letterheadSettings?.showLetterhead && letterheadSettings?.letterheadImage;
+  const scale = letterheadSettings?.letterheadScale || 100;
+  
   return `
     .invoice-root {
       background: #fff;
@@ -32,10 +91,18 @@ export function getInvoiceCSS() {
       -webkit-font-smoothing: antialiased;
       text-rendering: optimizeLegibility;
       font-variant-ligatures: common-ligatures;
-      width: 1083px;
+      width: ${dims.width}px;
+      min-height: ${dims.height}px;
       padding: 20px;
       box-sizing: border-box;
       margin: 0 auto;
+      position: relative;
+      ${hasLetterhead ? `
+      background-image: url('${letterheadSettings.letterheadImage}');
+      background-repeat: no-repeat;
+      background-position: center;
+      background-size: ${scale}% auto;
+      ` : ''}
     }
     .invoice-root * { box-sizing: border-box; }
     .invoice-root table { width: 100%; border-collapse: collapse; }
@@ -113,6 +180,12 @@ export function getInvoiceCSS() {
     }
     .invoice-root li {
       text-align: right;
+    }
+    .invoice-root .proforma-content {
+      position: relative;
+      transform: translate(var(--proforma-x, 0px), var(--proforma-y, 0px)) scale(var(--proforma-scale, 1));
+      transform-origin: top right;
+      z-index: 2;
     }
   `;
 }
@@ -365,6 +438,23 @@ function generateItemsFooter(inv) {
 }
 
 /**
+ * Generate HTML for custom text elements positioned on the letterhead
+ * @param {object} inv - Invoice object with customTexts array
+ * @returns {string} HTML string for custom text elements
+ */
+function generateCustomTextsHTML(inv) {
+  if (!inv?.customTexts || !Array.isArray(inv.customTexts) || inv.customTexts.length === 0) {
+    return '';
+  }
+
+  return inv.customTexts.map(item => `
+    <div data-custom-text-id="${item.id}" style="position:absolute;left:${item.x}px;top:${item.y}px;font-size:${item.fontSize}px;color:${item.color};font-weight:${item.isBold ? 'bold' : 'normal'};font-style:${item.isItalic ? 'italic' : 'normal'};z-index:10;cursor:move">
+      ${escHtml(item.text)}
+    </div>
+  `).join('');
+}
+
+/**
  * Generate complete invoice HTML
  * @param {object} inv - Invoice object
  * @returns {string} Complete HTML string for the invoice
@@ -499,10 +589,20 @@ export function generateInvoiceHTML(inv) {
     ? `<th style="width:10%;text-align:center;background:${sectionHeaderBg}">جمع عوارض و مالیات</th>` 
     : '';
   
+  // Check if letterhead is enabled
+  const hasLetterhead = inv.showLetterhead && inv.letterheadImage;
+  
+  // Get proforma positioning and scaling values
+  const proformaX = inv?.proformaX || 0;
+  const proformaY = inv?.proformaY || 0;
+  const proformaScale = (inv?.proformaScale || 100) / 100;
+  
   // Build the complete HTML with base wrapper for consistent styling
-  return `
-    <style>${getInvoiceCSS()}</style>
-    <div class="invoice-root">
+  const content = `
+    <style>${getInvoiceCSS(inv)}</style>
+    <div class="invoice-root" ${hasLetterhead ? 'data-letterhead="true"' : ''} style="--proforma-x: ${proformaX}px; --proforma-y: ${proformaY}px; --proforma-scale: ${proformaScale};">
+    <div class="proforma-content">
+    ${generateCustomTextsHTML(inv)}
     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">
       <div style="flex:1">${logoHtml}</div>
       <div style="text-align:center;flex:2;direction:rtl">
@@ -575,7 +675,38 @@ export function generateInvoiceHTML(inv) {
       </div>
     </div>
     </div>
+    </div>
   `;
+  
+  return content;
+}
+
+/**
+ * Get @page size rule for print/export
+ * @param {object} letterheadSettings - Letterhead settings
+ * @returns {string} @page CSS rule
+ */
+function getPageRule(letterheadSettings = null) {
+  const size = letterheadSettings?.letterheadSize || 'A4';
+  const orientation = letterheadSettings?.letterheadOrientation || 'landscape';
+  
+  // Map size names to CSS size values
+  const sizeMap = {
+    A4: 'A4',
+    A5: 'A5',
+    Letter: 'letter',
+    Legal: 'legal'
+  };
+  
+  // For Custom size, use the custom dimensions
+  let cssSize = sizeMap[size] || 'A4';
+  if (size === 'Custom') {
+    const width = letterheadSettings?.letterheadWidth || 297;
+    const height = letterheadSettings?.letterheadHeight || 210;
+    cssSize = `${width}mm ${height}mm`;
+  }
+  
+  return `size: ${cssSize} ${orientation}; margin: 6mm;`;
 }
 
 /**
@@ -586,6 +717,7 @@ export function generateInvoiceHTML(inv) {
  */
 export function generateExportHTML(inv) {
   const content = generateInvoiceHTML(inv);
+  const pageRule = getPageRule(inv);
 
   return `<!DOCTYPE html>
 <html lang="fa" dir="rtl">
@@ -623,7 +755,7 @@ export function generateExportHTML(inv) {
       font-display: swap;
     }
 
-    @page { size: A4 landscape; margin: 6mm; }
+    @page { ${pageRule} }
 
     body {
       margin: 0;
@@ -634,7 +766,7 @@ export function generateExportHTML(inv) {
     /* Remove the <style> tag's visibility if it leaks */
     style { display: none; }
 
-    ${getInvoiceCSS()}
+    ${getInvoiceCSS(inv)}
   </style>
 </head>
 <body>
