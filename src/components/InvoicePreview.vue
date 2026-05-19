@@ -232,7 +232,7 @@ defineExpose({ renderPreview });
   overflow-x: auto;
   overflow-y: auto;
   display: flex;
-  justify-content: center;
+  justify-content: flex-start;
 }
 
 /* Zoom Scale Container */
@@ -249,7 +249,7 @@ defineExpose({ renderPreview });
   display: flex;
   justify-content: center;
   align-items: flex-start;
-  transform-origin: top center;
+  transform-origin: top right;
 }
 
 /* A4 Container */
