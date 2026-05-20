@@ -1,14 +1,43 @@
 <script setup>
 import { useRouter } from 'vue-router';
 import { useInvoiceStore } from '../stores/invoice.js';
-import { onMounted } from 'vue';
+import { onMounted, computed } from 'vue';
+import { _x, _e, _s, _checking, checkStoredLicense } from '../composables/useLicense.js';
+import _PUB from '../utils/publicKey.js';
 
 const router = useRouter();
 const store = useInvoiceStore();
 
-// Initialize theme on mount
-onMounted(() => {
+// License state
+const licenseValid = _x;
+const licenseExp = _e;
+const licenseStatus = _s;
+const licenseChecking = _checking;
+
+// Calculate days remaining
+const daysRemaining = computed(() => {
+  if (!licenseValid.value || licenseExp.value === 0) return 0;
+  const now = Date.now();
+  const expMs = licenseExp.value * 1000;
+  const diffMs = expMs - now;
+  return Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+});
+
+// License state computed values
+const hasLicense = computed(() => licenseValid.value && licenseExp.value > 0);
+const isExpired = computed(() => daysRemaining.value <= 0);
+const isExpiringSoon = computed(() => daysRemaining.value > 0 && daysRemaining.value <= 7);
+const licenseMessage = computed(() => {
+  if (licenseChecking.value) return 'در حال بررسی مجوز...';
+  if (!hasLicense.value) return 'مجوز معتبر یافت نشد';
+  if (isExpired.value) return 'مجوز منقضی شده است';
+  return `مجوز تا ${daysRemaining.value} روز دیگر معتبر است`;
+});
+
+// Initialize theme and license on mount
+onMounted(async () => {
   store.initDarkMode();
+  await checkStoredLicense(_PUB);
 });
 
 function navigateToProforma() {
@@ -17,67 +46,82 @@ function navigateToProforma() {
 </script>
 
 <template>
-  <div class="min-h-screen flex items-center justify-center p-6 sm:p-10" style="background: var(--bg)">
-    <div class="w-full max-w-5xl">
+  <div class="min-h-screen flex flex-col p-6 sm:p-10" style="background: var(--bg)">
+    <!-- Small License Badge - Top Left -->
+    <div class="license-badge" :class="{ 'warning': isExpiringSoon, 'expired': isExpired, 'valid': hasLicense && !isExpiringSoon && !isExpired }" :title="licenseMessage">
+      <i :class="{
+        'fa-solid fa-check': hasLicense && !isExpiringSoon && !isExpired,
+        'fa-solid fa-exclamation': isExpiringSoon,
+        'fa-solid fa-xmark': isExpired,
+        'fa-solid fa-spinner fa-spin': licenseChecking
+      }"></i>
+      <span v-if="hasLicense && !isExpired && !licenseChecking" class="license-days">{{ daysRemaining }} روز</span>
+      <span v-else class="license-text">{{ licenseMessage }}</span>
+    </div>
+
+    <div class="w-full max-w-5xl flex flex-col min-h-[calc(100vh-4rem)]">
       
       <!-- Header -->
-            <div class="text-center mb-10 sm:mb-12 relative">
-              <h1 class="text-2xl sm:text-3xl font-extrabold mb-2" style="color: var(--fg)">لیست ابزارها</h1>
-              <!-- <p class="text-sm sm:text-base" style="color: var(--muted)">انتخاب کنید چه کاری انجام دهید</p> -->
-              <button
-                @click="store.toggleTheme()"
-                class="theme-toggle-btn"
-                :title="store.dark ? 'حالت روشن' : 'حالت تاریک'"
-              >
-                <i :class="store.dark ? 'fa-solid fa-moon' : 'fa-solid fa-sun'"></i>
-              </button>
-            </div>
-
-      <!-- App Cards Grid - Modern Dashboard Style -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 max-w-4xl mx-auto">
-        
-        <!-- Proforma Button - Active -->
-        <button
-          @click="navigateToProforma"
-          class="dashboard-card active group"
+      <div class="text-center mb-10 sm:mb-12 relative">
+       <button
+          @click="store.toggleTheme()"
+          class="theme-toggle-btn"
+          :title="store.dark ? 'حالت روشن' : 'حالت تاریک'"
         >
-          <div class="icon-box">
-            <i class="fa-solid fa-file-invoice icon-style"></i>
-          </div>
-          <div class="text-box">
-            <h3 class="card-title">پیش‌فاکتور داخلی</h3>
-            <p class="card-desc">ایجاد و مدیریت پیش‌فاکتورها</p>
-          </div>
-          <div class="arrow-indicator">
-            <i class="fa-solid fa-arrow-left-long"></i>
-          </div>
+          <i :class="store.dark ? 'fa-solid fa-moon' : 'fa-solid fa-sun'"></i>
         </button>
-
-        <!-- Placeholder App 2 - Disabled -->
-        <button disabled class="dashboard-card disabled">
-          <div class="badge">به زودی</div>
-          <div class="icon-box">
-            <i class="fa-solid fa-box icon-style"></i>
-          </div>
-          <div class="text-box">
-            <h3 class="card-title">پروفرما خارجی</h3>
-            <p class="card-desc">در حال توسعه</p>
-          </div>
-        </button>
-
-        <!-- Placeholder App 3 - Disabled -->
-        <!-- <button disabled class="dashboard-card disabled">
-          <div class="badge">به زودی</div>
-          <div class="icon-box">
-            <i class="fa-solid fa-chart-line icon-style"></i>
-          </div>
-          <div class="text-box">
-            <h3 class="card-title">اپلیکیشن سوم</h3>
-            <p class="card-desc">در حال توسعه</p>
-          </div>
-        </button> -->
-
       </div>
+
+      <!-- Content Area - Centers tool list vertically -->
+      <div class="flex-1 flex items-center justify-center">
+        <!-- App Cards Grid - Modern Dashboard Style -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 max-w-4xl mx-auto">
+          <!-- Proforma Button - Active -->
+          <button
+            @click="navigateToProforma"
+            class="dashboard-card active group"
+          >
+            <div class="icon-box">
+              <i class="fa-solid fa-file-invoice icon-style"></i>
+            </div>
+            <div class="text-box">
+              <h3 class="card-title">پیش‌فاکتور داخلی</h3>
+              <p class="card-desc">ایجاد و مدیریت پیش‌فاکتورها</p>
+            </div>
+            <div class="arrow-indicator">
+              <i class="fa-solid fa-arrow-left-long"></i>
+            </div>
+          </button>
+
+          <!-- Placeholder App 2 - Disabled -->
+          <button disabled class="dashboard-card disabled">
+            <div class="badge">به زودی</div>
+            <div class="icon-box">
+              <i class="fa-solid fa-box icon-style"></i>
+            </div>
+            <div class="text-box">
+              <h3 class="card-title">پروفرما خارجی</h3>
+              <p class="card-desc">در حال توسعه</p>
+            </div>
+          </button>
+
+          <!-- Placeholder App 3 - Disabled -->
+          <!-- <button disabled class="dashboard-card disabled">
+            <div class="badge">به زودی</div>
+            <div class="icon-box">
+              <i class="fa-solid fa-chart-line icon-style"></i>
+            </div>
+            <div class="text-box">
+              <h3 class="card-title">اپلیکیشن سوم</h3>
+              <p class="card-desc">در حال توسعه</p>
+            </div>
+          </button> -->
+        </div>
+      </div>
+      <footer class="pt-8 pb-4 flex items-center justify-center gap-2" style="margin-bottom: 0px;">
+        <span class="powered-by-text">قدرت گرفته از دستیار تابان</span>
+        <img src="/Taban.png" alt="Taban Assistant Logo" style="height: 24px; width: auto;" />
+      </footer>
     </div>
   </div>
 </template>
@@ -212,6 +256,64 @@ function navigateToProforma() {
   border-radius: 6px;
 }
 
+/* Small License Badge - Top Left Corner */
+.license-badge {
+  position: fixed;
+  top: 16px;
+  left: 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 9999px;
+  font-family: 'IRANSansX', sans-serif;
+  font-size: 0.75rem;
+  font-weight: 500;
+  z-index: 1000;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
+  cursor: default;
+  backdrop-filter: blur(8px);
+}
+
+.license-badge:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.license-badge.valid {
+  background: rgba(5, 150, 105, 0.15);
+  color: #059669;
+  border: 1px solid rgba(5, 150, 105, 0.3);
+}
+
+.license-badge.warning {
+  background: rgba(217, 119, 6, 0.15);
+  color: #D97706;
+  border: 1px solid rgba(217, 119, 6, 0.3);
+}
+
+.license-badge.expired {
+  background: rgba(220, 38, 38, 0.15);
+  color: #DC2626;
+  border: 1px solid rgba(220, 38, 38, 0.3);
+}
+
+.license-badge i {
+  font-size: 0.875rem;
+}
+
+.license-days {
+  font-weight: 600;
+}
+
+.license-text {
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* Responsive Adjustments */
 @media (max-width: 639px) {
   /* On very small screens, make cards slightly more compact */
@@ -247,7 +349,7 @@ function navigateToProforma() {
 /* Theme Toggle Button */
 .theme-toggle-btn {
   position: absolute;
-  top: 0px;
+  top: 16px;
   right: 16px;
   display: flex;
   align-items: center;
@@ -275,5 +377,9 @@ function navigateToProforma() {
   font-size: 1.1rem;
   color: var(--muted);
   transition: color 0.2s ease;
+}
+
+.powered-by-text {
+  font-size: 0.7rem;
 }
 </style>

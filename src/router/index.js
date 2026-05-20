@@ -48,6 +48,10 @@ router.beforeEach(async (to, from) => {
   // No valid license — redirect to root (shows modal via App.vue)
   // Store the intended route for redirection after license verification
   if (!_x.value) {
+    // If already on the root path, don't redirect again (prevents infinite loop)
+    if (to.path === '/') {
+      return true;
+    }
     // Return an object with the redirect path and state containing the intended route
     return {
       path: '/',
