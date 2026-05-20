@@ -2,14 +2,9 @@
  * Number formatting utilities for Persian/Farsi
  */
 
-// Currency symbols mapping
+// Currency symbols mapping (only Rial supported)
 export const currencySymbols = {
-  'IRR': 'ریال',
-  'USD': 'دلار',
-  'EUR': 'یورو',
-  'GBP': 'پوند',
-  'AED': 'درهم',
-  'TRY': 'لیر'
+  'IRR': 'ریال'
 };
 
 /**

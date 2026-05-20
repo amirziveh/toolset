@@ -125,19 +125,9 @@ function getCurrencySymbol(currency) {
       <div class="space-y-3">
         <div>
           <label class="field-label">واحد پول</label>
-          <select 
-            id="f-currency" 
-            class="input-field" 
-            :value="store.currentInvoice.currency"
-            @change="store.recalculate()"
-          >
-            <option value="IRR">ریال ایران</option>
-            <option value="USD">دلار آمریکا</option>
-            <option value="EUR">یورو</option>
-            <option value="GBP">پوند انگلیس</option>
-            <option value="AED">درهم امارات</option>
-            <option value="TRY">لیر ترکیه</option>
-          </select>
+          <div class="input-field" style="padding-top: 8px;">
+            <span class="text-sm font-semibold" style="color:var(--accent)">ریال</span>
+          </div>
         </div>
         <div class="p-3 rounded-lg" style="background:var(--input-bg)">
           <label class="field-label">مبلغ به حروف</label>

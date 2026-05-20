@@ -585,8 +585,8 @@ export function generateInvoiceHTML(inv) {
   const buyerBox = makePartyBox('خریدار', inv.buyer, accentColor);
   
   // Build table header based on VAT enabled
-  const taxHeader = inv.vatEnabled 
-    ? `<th style="width:10%;text-align:center;background:${sectionHeaderBg}">جمع عوارض و مالیات</th>` 
+  const taxHeader = inv.vatEnabled
+    ? `<th style="width:10%;text-align:center;background:${sectionHeaderBg}">جمع عوارض و مالیات (ریال)</th>`
     : '';
   
   // Check if letterhead is enabled
@@ -639,10 +639,10 @@ export function generateInvoiceHTML(inv) {
           <th style="width:35%;background:${sectionHeaderBg}">شرح کالا/خدمات</th>
           <th style="width:10%;text-align:center;background:${sectionHeaderBg}">مقدار</th>
           <th style="width:8%;text-align:center;background:${sectionHeaderBg}">واحد</th>
-          <th style="width:10%;text-align:center;background:${sectionHeaderBg}">مبلغ واحد</th>
-          <th style="width:10%;text-align:center;background:${sectionHeaderBg}">مبلغ تخفیف</th>
+          <th style="width:10%;text-align:center;background:${sectionHeaderBg}">مبلغ واحد (ریال)</th>
+          <th style="width:10%;text-align:center;background:${sectionHeaderBg}">مبلغ تخفیف (ریال)</th>
           ${taxHeader}
-          <th style="width:10%;text-align:center;background:${sectionHeaderBg}">جمع کل</th>
+          <th style="width:10%;text-align:center;background:${sectionHeaderBg}">جمع کل (ریال)</th>
         </tr>
       </thead>
       <tbody>
