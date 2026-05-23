@@ -31,10 +31,11 @@ function calculateAmount(item) {
   const discAmt = safeNum(item.discountAmount);
   
   let itemDisc = 0;
+  // Apply discount per unit, then multiply by quantity
   if (discPct > 0) {
-    itemDisc = gross * discPct / 100;
+    itemDisc = price * discPct / 100 * qty;
   } else if (discAmt > 0) {
-    itemDisc = discAmt;
+    itemDisc = discAmt * qty;
   }
   
   return gross - itemDisc;
@@ -53,10 +54,11 @@ function calculateItemTax(item) {
   const discAmt = safeNum(item.discountAmount);
   
   let itemDisc = 0;
+  // Apply discount per unit, then multiply by quantity
   if (discPct > 0) {
-    itemDisc = gross * discPct / 100;
+    itemDisc = price * discPct / 100 * qty;
   } else if (discAmt > 0) {
-    itemDisc = discAmt;
+    itemDisc = discAmt * qty;
   }
   
   const afterDisc = gross - itemDisc;
@@ -74,12 +76,9 @@ function calculateItemTotal(item) {
   return calculateAmount(item) + calculateItemTax(item);
 }
 
-// Total sum of all item totals (reactive)
+// Total sum of all item totals - use store's calculation for consistency
 const itemsTotal = computed(() => {
-  if (!store.currentInvoice?.items) return 0;
-  return store.currentInvoice.items.reduce((sum, item) => {
-    return sum + calculateItemTotal(item);
-  }, 0);
+  return store.itemsTotal;
 });
 </script>
 

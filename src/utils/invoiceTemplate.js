@@ -41,7 +41,7 @@ export function mmToPx(mm) {
  */
 export function getLetterheadDimensions(settings) {
   const size = settings?.letterheadSize || 'A4';
-  const orientation = settings?.letterheadOrientation || 'portrait';
+  const orientation = settings?.letterheadOrientation || 'landscape';
   const customWidth = settings?.letterheadWidth || 297;
   const customHeight = settings?.letterheadHeight || 210;
   
@@ -249,10 +249,11 @@ function calculateAmount(item) {
   const discAmt = safeNum(item.discountAmount);
   
   let itemDisc = 0;
+  // Apply discount per unit, then multiply by quantity
   if (discPct > 0) {
-    itemDisc = gross * discPct / 100;
+    itemDisc = price * discPct / 100 * qty;
   } else if (discAmt > 0) {
-    itemDisc = discAmt;
+    itemDisc = discAmt * qty;
   }
   
   return gross - itemDisc;
@@ -275,10 +276,11 @@ function calculateItemTax(item, inv) {
   const discAmt = safeNum(item.discountAmount);
   
   let itemDisc = 0;
+  // Apply discount per unit, then multiply by quantity
   if (discPct > 0) {
-    itemDisc = gross * discPct / 100;
+    itemDisc = price * discPct / 100 * qty;
   } else if (discAmt > 0) {
-    itemDisc = discAmt;
+    itemDisc = discAmt * qty;
   }
   
   const afterDisc = gross - itemDisc;
@@ -337,10 +339,11 @@ function generateItemsHtml(inv) {
     const discPct = safeNum(item.discountPercent);
     const discAmt = safeNum(item.discountAmount);
     
+    // Apply discount per unit, then multiply by quantity
     if (discPct > 0) {
-      itemDiscount = gross * discPct / 100;
+      itemDiscount = price * discPct / 100 * qty;
     } else if (discAmt > 0) {
-      itemDiscount = discAmt;
+      itemDiscount = discAmt * qty;
     }
     const net = gross - itemDiscount;
     const itemTax = calculateItemTax(item, inv);
@@ -391,10 +394,11 @@ function generateItemsFooter(inv) {
     const discPct = safeNum(item.discountPercent);
     const discAmt = safeNum(item.discountAmount);
     
+    // Apply discount per unit, then multiply by quantity
     if (discPct > 0) {
-      itemDisc = gross * discPct / 100;
+      itemDisc = price * discPct / 100 * qty;
     } else if (discAmt > 0) {
-      itemDisc = discAmt;
+      itemDisc = discAmt * qty;
     }
     
     subtotal += gross;
@@ -431,7 +435,7 @@ function generateItemsFooter(inv) {
       <tr style="background:#f3f4f6;font-weight:bold">
         <td colspan="6" style="text-align:right;padding:8px;font-size:12px;color:#374151">جمع کل اقلام</td>
         ${taxCol}
-        <td style="text-align:center;padding:8px;font-size:12px;color:#374151">${formatCurrency(subtotal - itemsDiscount, currency)}</td>
+        <td style="text-align:center;padding:8px;font-size:12px;color:#374151">${formatCurrency(grandTotal - itemsDiscount, currency)}</td>
       </tr>
     </tfoot>
   `;
@@ -485,10 +489,11 @@ export function generateInvoiceHTML(inv) {
       const discPct = safeNum(item.discountPercent);
       const discAmt = safeNum(item.discountAmount);
       
+      // Apply discount per unit, then multiply by quantity
       if (discPct > 0) {
-        itemDisc = gross * discPct / 100;
+        itemDisc = price * discPct / 100 * qty;
       } else if (discAmt > 0) {
-        itemDisc = discAmt;
+        itemDisc = discAmt * qty;
       }
       
       subtotal += gross;
@@ -571,7 +576,7 @@ export function generateInvoiceHTML(inv) {
   // Build signature HTML
   let sigHtml = '';
   if (inv.seller?.signatureImage) {
-    sigHtml = `<img src="${inv.seller.signatureImage}" style="max-height:85px;max-width:200px;object-fit:contain;position:absolute;bottom:0;right:0" alt="امضا">`;
+    sigHtml = `<img src="${inv.seller.signatureImage}" style="max-height:85px;max-width:200px;object-fit:contain;position:relative;bottom:0;right:0" alt="امضا">`;
   } else {
     sigHtml = `<div style="border-bottom:0px solid #444;width:190px;height:0px;position:absolute;bottom:0;right:0"></div>`;
   }
@@ -667,10 +672,11 @@ export function generateInvoiceHTML(inv) {
     <div class="sign-area" style="margin-top:20px;font-size:10px">
       <div style="display:flex;justify-content:space-between;align-items:flex-start">
         <div style="text-align:right;position:relative;height:80px;min-width:200px">
-          <div style="margin-bottom:4px"><strong>مهر و امضای فروشنده</strong></div>
+          <div style="margin-bottom:4px;margin-right:20px"><strong>مهر و امضای فروشنده</strong></div>
           ${sigHtml}
         </div>
-        <div style="text-align:left"><strong>مهر و امضای خریدار</strong></div>
+        
+        <div style="text-align:left;margin-left:20px"><strong>مهر و امضای خریدار</strong></div>
       </div>
     </div>
     </div>

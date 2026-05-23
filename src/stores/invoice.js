@@ -113,13 +113,70 @@ export const useInvoiceStore = defineStore('invoice', {
     totalItemsDiscount: (state) => {
       if (!state.currentInvoice?.items) return 0;
       return state.currentInvoice.items.reduce((sum, item) => {
-        const gross = safeNum(item.quantity) * safeNum(item.unitPrice);
+        const qty = safeNum(item.quantity);
+        const price = safeNum(item.unitPrice);
         const discPct = safeNum(item.discountPercent);
         const discAmt = safeNum(item.discountAmount);
         let itemDisc = 0;
-        if (discPct > 0) itemDisc = gross * discPct / 100;
-        else if (discAmt > 0) itemDisc = discAmt;
+        // Apply discount per unit, then multiply by quantity
+        if (discPct > 0) itemDisc = price * discPct / 100 * qty;
+        else if (discAmt > 0) itemDisc = discAmt * qty;
         return sum + itemDisc;
+      }, 0);
+    },
+    
+    // Calculate item amount after discount
+    calculateItemAmount: (state) => (item) => {
+      const qty = safeNum(item.quantity);
+      const price = safeNum(item.unitPrice);
+      const gross = qty * price;
+      
+      const discPct = safeNum(item.discountPercent);
+      const discAmt = safeNum(item.discountAmount);
+      
+      let itemDisc = 0;
+      // Apply discount per unit, then multiply by quantity
+      if (discPct > 0) {
+        itemDisc = price * discPct / 100 * qty;
+      } else if (discAmt > 0) {
+        itemDisc = discAmt * qty;
+      }
+      
+      return gross - itemDisc;
+    },
+    
+    // Calculate item tax
+    calculateItemTax: (state) => (item) => {
+      const inv = state.currentInvoice;
+      if (!inv?.vatEnabled) return 0;
+      
+      const amount = state.calculateItemAmount(item);
+      const vatPct = safeNum(inv.vatPercent) || 10;
+      
+      if (inv.priceIncludesVat) {
+        return Math.round(amount * vatPct / (100 + vatPct));
+      } else {
+        return Math.round(amount * vatPct / 100);
+      }
+    },
+    
+    // Sum of all item totals (amount after discount + tax) - THIS IS THE TOTAL COLUMN
+    itemsTotal: (state) => {
+      if (!state.currentInvoice?.items) return 0;
+      const inv = state.currentInvoice;
+      return state.currentInvoice.items.reduce((sum, item) => {
+        const amount = state.calculateItemAmount(item);
+        // Calculate tax inline to ensure vatEnabled is reactive
+        let tax = 0;
+        if (inv?.vatEnabled) {
+          const vatPct = safeNum(inv.vatPercent) || 10;
+          if (inv.priceIncludesVat) {
+            tax = Math.round(amount * vatPct / (100 + vatPct));
+          } else {
+            tax = Math.round(amount * vatPct / 100);
+          }
+        }
+        return sum + amount + tax;
       }, 0);
     },
     
@@ -146,55 +203,48 @@ export const useInvoiceStore = defineStore('invoice', {
       return afterItems - globalDiscAmt;
     },
     
-    grandTotal: (state) => {
-      const inv = state.currentInvoice;
-      if (!inv) return 0;
-      
-      const subtotal = state.subtotalBeforeDiscount;
-      const itemsDisc = state.totalItemsDiscount;
-      const afterItemsDisc = subtotal - itemsDisc;
-      const globalDisc = safeNum(inv.discountPercent);
-      const globalDiscAmt = Math.round(afterItemsDisc * globalDisc / 100);
-      const afterGlobalDisc = afterItemsDisc - globalDiscAmt;
-      
-      const vatPct = safeNum(inv.vatPercent) || 10;
-      let vat = 0;
-      if (inv.vatEnabled) {
-        if (inv.priceIncludesVat) {
-          vat = Math.round(afterGlobalDisc * vatPct / (100 + vatPct));
-        } else {
-          vat = Math.round(afterGlobalDisc * vatPct / 100);
-        }
-      }
-      
-      const other = safeNum(inv.otherCharges);
-      let total;
-      if (inv.priceIncludesVat) {
-        total = afterGlobalDisc + other;
-      } else {
-        total = afterGlobalDisc + vat + other;
-      }
-      
-      return total;
-    },
-    
+    // VAT amount = sum of item taxes
     vatAmount: (state) => {
       const inv = state.currentInvoice;
       if (!inv?.vatEnabled) return 0;
       
-      const subtotal = state.subtotalBeforeDiscount;
-      const itemsDisc = state.totalItemsDiscount;
-      const afterItemsDisc = subtotal - itemsDisc;
-      const globalDisc = safeNum(inv.discountPercent);
-      const globalDiscAmt = Math.round(afterItemsDisc * globalDisc / 100);
-      const afterGlobalDisc = afterItemsDisc - globalDiscAmt;
+      if (!state.currentInvoice?.items) return 0;
+      // Calculate tax inline to ensure vatEnabled is reactive
+      const totalTax = state.currentInvoice.items.reduce((sum, item) => {
+        const amount = state.calculateItemAmount(item);
+        const vatPct = safeNum(inv.vatPercent) || 10;
+        let tax = 0;
+        if (inv.priceIncludesVat) {
+          tax = Math.round(amount * vatPct / (100 + vatPct));
+        } else {
+          tax = Math.round(amount * vatPct / 100);
+        }
+        return sum + tax;
+      }, 0);
       
-      const vatPct = safeNum(inv.vatPercent) || 10;
-      if (inv.priceIncludesVat) {
-        return Math.round(afterGlobalDisc * vatPct / (100 + vatPct));
-      } else {
-        return Math.round(afterGlobalDisc * vatPct / 100);
+      // Debug log
+      if (state.currentInvoice.items.length > 0) {
+        console.log('[DEBUG] VAT Amount (sum of item taxes):', totalTax);
       }
+      
+      return totalTax;
+    },
+    
+    // Grand total = sum of item totals (from the totals column) + other charges
+    grandTotal: (state) => {
+      const inv = state.currentInvoice;
+      if (!inv) return 0;
+      
+      const itemsTotal = state.itemsTotal;
+      const other = safeNum(inv.otherCharges);
+      const total = itemsTotal + other;
+      
+      // Debug log
+      if (state.currentInvoice.items.length > 0) {
+        console.log('[DEBUG] Grand Total:', total, '(itemsTotal:', itemsTotal, '+ other:', other, ')');
+      }
+      
+      return total;
     }
   },
 

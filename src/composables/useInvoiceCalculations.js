@@ -8,102 +8,44 @@ import { safeNum } from '@/utils/number-format';
 export function useInvoiceCalculations() {
   const store = useInvoiceStore();
 
-  // Subtotal before any discounts
+  // Subtotal before any discounts (from store)
   const subtotalBeforeDiscount = computed(() => {
-    if (!store.currentInvoice?.items) return 0;
-    return store.currentInvoice.items.reduce((sum, item) => {
-      return sum + (safeNum(item.quantity) * safeNum(item.unitPrice));
-    }, 0);
+    return store.subtotalBeforeDiscount;
   });
 
-  // Total item-level discounts
+  // Total item-level discounts (from store)
   const totalItemsDiscount = computed(() => {
-    if (!store.currentInvoice?.items) return 0;
-    return store.currentInvoice.items.reduce((sum, item) => {
-      const gross = safeNum(item.quantity) * safeNum(item.unitPrice);
-      const discPct = safeNum(item.discountPercent);
-      const discAmt = safeNum(item.discountAmount);
-      let itemDisc = 0;
-      if (discPct > 0) itemDisc = gross * discPct / 100;
-      else if (discAmt > 0) itemDisc = discAmt;
-      return sum + itemDisc;
-    }, 0);
+    return store.totalItemsDiscount;
   });
 
-  // VAT amount
+  // VAT amount (from store - now calculated as sum of item taxes)
   const vatAmount = computed(() => {
-    const inv = store.currentInvoice;
-    if (!inv?.vatEnabled) return 0;
-
-    const subtotal = subtotalBeforeDiscount.value;
-    const itemsDisc = totalItemsDiscount.value;
-    const afterItemsDisc = subtotal - itemsDisc;
-    const globalDisc = safeNum(inv.discountPercent);
-    const globalDiscAmt = Math.round(afterItemsDisc * globalDisc / 100);
-    const afterGlobalDisc = afterItemsDisc - globalDiscAmt;
-
-    const vatPct = safeNum(inv.vatPercent) || 10;
-    if (inv.priceIncludesVat) {
-      return Math.round(afterGlobalDisc * vatPct / (100 + vatPct));
-    } else {
-      return Math.round(afterGlobalDisc * vatPct / 100);
-    }
+    return store.vatAmount;
   });
 
-  // Grand total
+  // Grand total (from store - now calculated from itemsTotal + otherCharges)
   const grandTotal = computed(() => {
-    const inv = store.currentInvoice;
-    if (!inv) return 0;
-
-    const subtotal = subtotalBeforeDiscount.value;
-    const itemsDisc = totalItemsDiscount.value;
-    const afterItemsDisc = subtotal - itemsDisc;
-    const globalDisc = safeNum(inv.discountPercent);
-    const globalDiscAmt = Math.round(afterItemsDisc * globalDisc / 100);
-    const afterGlobalDisc = afterItemsDisc - globalDiscAmt;
-
-    const vatPct = safeNum(inv.vatPercent) || 10;
-    let vat = 0;
-    if (inv.vatEnabled) {
-      if (inv.priceIncludesVat) {
-        vat = Math.round(afterGlobalDisc * vatPct / (100 + vatPct));
-      } else {
-        vat = Math.round(afterGlobalDisc * vatPct / 100);
-      }
-    }
-
-    const other = safeNum(inv.otherCharges);
-    let total;
-    if (inv.priceIncludesVat) {
-      total = afterGlobalDisc + other;
-    } else {
-      total = afterGlobalDisc + vat + other;
-    }
-
-    return total;
+    return store.grandTotal;
   });
 
-  // Global discount amount
+  // Global discount amount (from store)
   const globalDiscountAmount = computed(() => {
-    const subtotal = subtotalBeforeDiscount.value;
-    const itemsDisc = totalItemsDiscount.value;
-    const afterItemsDisc = subtotal - itemsDisc;
-    const globalDisc = safeNum(store.currentInvoice?.discountPercent);
-    return Math.round(afterItemsDisc * globalDisc / 100);
+    return store.globalDiscountAmount;
   });
 
-  // Amount after item discounts but before global discount
+  // Amount after item discounts but before global discount (from store)
   const afterItemsDiscount = computed(() => {
-    const subtotal = subtotalBeforeDiscount.value;
-    const itemsDisc = totalItemsDiscount.value;
-    return subtotal - itemsDisc;
+    return store.afterItemsDiscount;
   });
 
-  // Amount after global discount
+  // Amount after global discount (from store)
   const afterGlobalDiscount = computed(() => {
-    const afterItems = afterItemsDiscount.value;
-    const globalDiscAmt = globalDiscountAmount.value;
-    return afterItems - globalDiscAmt;
+    return store.afterGlobalDiscount;
+  });
+
+  // Items total (sum of all item totals from the totals column)
+  const itemsTotal = computed(() => {
+    return store.itemsTotal;
   });
 
   // Recalculate function
@@ -124,6 +66,7 @@ export function useInvoiceCalculations() {
     globalDiscountAmount,
     afterItemsDiscount,
     afterGlobalDiscount,
+    itemsTotal,
     recalculate,
     updateItem
   };
