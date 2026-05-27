@@ -1,9 +1,9 @@
 <script setup>
-import { ref, onMounted, onBeforeUnmount } from 'vue';
+import { ref, onMounted, onBeforeUnmount, watch } from 'vue';
 import { useInvoiceStore } from '@/stores/invoice';
 import { Editor, EditorContent } from '@tiptap/vue-3';
 import StarterKit from '@tiptap/starter-kit';
-
+ 
 // Tiptap CSS is imported globally in main.js
 
 const store = useInvoiceStore();
@@ -28,6 +28,19 @@ onMounted(() => {
     }
   });
 });
+
+// Watch for changes to additionalDescription and update editor
+watch(
+  () => store.currentInvoice?.additionalDescription,
+  (newVal) => {
+    if (editor.value) {
+      const current = editor.value.getHTML();
+      if (current !== (newVal || '')) {
+        editor.value.commands.setContent(newVal || '', false);
+      }
+    }
+  }
+);
 
 // Clean up editor
 onBeforeUnmount(() => {
