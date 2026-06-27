@@ -81,7 +81,7 @@ const defaultInvoice = {
   // Letterhead settings
   letterheadImage: null,
   letterheadSize: 'A4',
-  letterheadOrientation: 'landscape',
+  letterheadOrientation: 'portrait',
   letterheadWidth: 297,
   letterheadHeight: 210,
   letterheadScale: 100,

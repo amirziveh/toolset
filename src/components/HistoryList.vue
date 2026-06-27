@@ -8,47 +8,60 @@ const emit = defineEmits(['load-invoice', 'request-delete']);
 const store = useInvoiceStore();
 const searchQuery = ref('');
 
-// Filter invoices based on search
+function getTotalQty(items) {
+  if (!items || items.length === 0) return 0;
+  return items.reduce((s, it) => s + Number(it.quantity || 0), 0);
+}
+
 const filteredInvoices = computed(() => {
   const query = searchQuery.value.toLowerCase();
   return store.savedInvoices.filter(inv => {
     const num = (inv.invoiceNumber || '').toLowerCase();
     const buyer = (inv.buyer?.name || '').toLowerCase();
-    return num.includes(query) || buyer.includes(query);
+    const seller = (inv.seller?.name || '').toLowerCase();
+    return num.includes(query) || buyer.includes(query) || seller.includes(query);
   });
 });
 
-// Format date
 function formatDate(date) {
   if (!date) return '—';
   return new Date(date).toLocaleDateString('fa-IR');
 }
 
-// Load invoice
+function getItemsSummary(items) {
+  if (!items || items.length === 0) return '—';
+  return items
+    .filter(it => it.description)
+    .map(it => it.description)
+    .join('، ');
+}
+
+function calcTotal(items, currency) {
+  if (!items) return formatNum(0);
+  const total = items.reduce((s, it) => s + Number(it.amount || 0), 0);
+  return formatNum(total);
+}
+
 function loadInvoice(id) {
   store.loadFromHistory(id);
-  // Emit event to switch tab
   emit('load-invoice');
 }
 
-// Duplicate invoice
 function duplicateInvoice(id) {
   const inv = store.savedInvoices.find(i => i.id === id);
   if (!inv) return;
-  
+
   const dup = JSON.parse(JSON.stringify(inv));
   dup.id = 'pf_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
   dup.invoiceNumber = inv.invoiceNumber + '-کپی';
   dup.createdAt = Date.now();
   dup.updatedAt = Date.now();
-  
+
   store.savedInvoices.unshift(dup);
   store.saveInvoicesToStorage();
 }
 
-// Request delete
 function requestDelete(id) {
-  // Emit event to show delete modal, passing the id
   emit('request-delete', id);
 }
 </script>
@@ -63,82 +76,99 @@ function requestDelete(id) {
         </button>
         <label class="btn btn-secondary btn-sm cursor-pointer">
           <i class="fa-solid fa-upload"></i> ورودی
-          <input 
-            type="file" 
-            accept=".json" 
-            class="hidden" 
+          <input
+            type="file"
+            accept=".json"
+            class="hidden"
             @change="store.importFromJSON($event)"
           >
         </label>
       </div>
     </div>
-    
+
     <div class="mb-4">
-      <input 
+      <input
         v-model="searchQuery"
-        class="input-field" 
+        class="input-field"
         placeholder="جستجو بر اساس شماره یا نام خریدار..."
       >
     </div>
-    
+
     <div v-if="filteredInvoices.length === 0" class="card text-center py-12">
       <i class="fa-solid fa-folder-open text-4xl mb-3" style="color:var(--muted)"></i>
       <p style="color:var(--muted)">
         {{ searchQuery ? 'نتیجه‌ای یافت نشد' : 'هنوز پیش‌فاکتوری ذخیره نشده' }}
       </p>
     </div>
-    
-    <div class="space-y-3">
-      <div 
-        v-for="inv in filteredInvoices" 
-        :key="inv.id"
-        class="card flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3"
-      >
-        <div class="flex-1 min-w-0">
-          <div class="flex items-center gap-2 mb-1 flex-wrap">
-            <span class="font-extrabold" style="color:var(--accent)">
+
+    <div v-else class="overflow-x-auto rounded-lg" style="border:1px solid var(--card-border)">
+      <table class="w-full text-sm hist-table" style="border-collapse:collapse">
+        <thead>
+          <tr style="background:var(--input-bg);border-bottom:2px solid var(--card-border)">
+            <th class="px-2 py-2.5 text-right font-extrabold">#</th>
+            <th class="px-2 py-2.5 text-right font-extrabold">شماره</th>
+            <th class="px-2 py-2.5 text-right font-extrabold">تاریخ</th>
+            <th class="px-2 py-2.5 text-right font-extrabold">فروشنده</th>
+            <th class="px-2 py-2.5 text-right font-extrabold">خریدار</th>
+            <th class="px-2 py-2.5 text-right font-extrabold">کالا/خدمات</th>
+            <th class="px-2 py-2.5 text-center font-extrabold">تعداد</th>
+            <th class="px-2 py-2.5 text-left font-extrabold">مبلغ کل</th>
+            <th class="px-2 py-2.5 text-center font-extrabold">عملیات</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr
+            v-for="(inv, i) in filteredInvoices"
+            :key="inv.id"
+            style="border-bottom:1px solid var(--card-border)"
+            class="hover-row"
+          >
+            <td class="px-2 py-2.5 text-right" style="color:var(--muted)">{{ i + 1 }}</td>
+            <td class="px-2 py-2.5 text-right font-semibold whitespace-nowrap" style="color:var(--accent)">
               {{ inv.invoiceNumber }}
-            </span>
-            <span class="text-xs px-2 py-0.5 rounded-full" style="background:var(--accent-light);color:var(--accent)">
-              {{ formatDate(inv.createdAt) }}
-            </span>
-            <span class="text-xs px-2 py-0.5 rounded-full" style="background:var(--input-bg);color:var(--muted)">
-              {{ currencySymbols[inv.currency] || inv.currency }}
-            </span>
-          </div>
-          <p class="text-sm font-semibold truncate">
-            {{ inv.buyer?.name || 'بدون نام' }}
-          </p>
-          <p class="text-xs" style="color:var(--muted)">
-            {{ inv.items ? inv.items.length : 0 }} قلم &middot; 
-            {{ formatCurrency(
-              inv.items ? inv.items.reduce((s, it) => s + Number(it.amount || 0), 0) : 0,
-              inv.currency
-            ) }}
-          </p>
-        </div>
-        <div class="flex gap-2 flex-shrink-0 w-full sm:w-auto">
-          <button 
-            @click="loadInvoice(inv.id)" 
-            class="btn btn-primary btn-sm flex-1 sm:flex-none justify-center"
-          >
-            <i class="fa-solid fa-folder-open"></i>
-            <span class="sm:hidden">بارگذاری</span>
-          </button>
-          <button 
-            @click="duplicateInvoice(inv.id)" 
-            class="btn btn-secondary btn-sm"
-          >
-            <i class="fa-solid fa-copy"></i>
-          </button>
-          <button 
-            @click="requestDelete(inv.id)" 
-            class="btn btn-danger btn-sm"
-          >
-            <i class="fa-solid fa-trash-can"></i>
-          </button>
-        </div>
-      </div>
+            </td>
+            <td class="px-2 py-2.5 text-right whitespace-nowrap">{{ formatDate(inv.createdAt) }}</td>
+            <td class="px-2 py-2.5 text-right truncate max-w-[100px]">{{ inv.seller?.name || '—' }}</td>
+            <td class="px-2 py-2.5 text-right truncate max-w-[100px]">{{ inv.buyer?.name || '—' }}</td>
+            <td class="px-2 py-2.5 text-right truncate max-w-[150px]" style="color:var(--muted)">
+              {{ getItemsSummary(inv.items) }}
+            </td>
+            <td class="px-2 py-2.5 text-center whitespace-nowrap">
+              {{ formatNum(getTotalQty(inv.items)) }}
+            </td>
+            <td class="px-2 py-2.5 text-left whitespace-nowrap">
+              {{ calcTotal(inv.items, inv.currency) }}
+            </td>
+            <td class="px-2 py-2.5 text-center">
+              <div class="flex gap-1 justify-center">
+                <button @click="loadInvoice(inv.id)" class="btn btn-primary btn-xs" title="بارگذاری">
+                  <i class="fa-solid fa-folder-open"></i>
+                </button>
+                <button @click="duplicateInvoice(inv.id)" class="btn btn-secondary btn-xs" title="کپی">
+                  <i class="fa-solid fa-copy"></i>
+                </button>
+                <button @click="requestDelete(inv.id)" class="btn btn-danger btn-xs" title="حذف">
+                  <i class="fa-solid fa-trash-can"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
     </div>
   </div>
 </template>
+
+<style scoped>
+.hover-row:hover {
+  background: var(--accent-light);
+}
+.btn-xs {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+}
+.hist-table th,
+.hist-table td {
+  border: 1px solid var(--card-border);
+}
+</style>

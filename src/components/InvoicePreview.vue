@@ -55,7 +55,7 @@ function getLetterheadDimensions() {
   if (!inv) return { width: mmToPx(210), height: mmToPx(297) };
   
   const size = inv.letterheadSize || 'A4';
-  const orientation = inv.letterheadOrientation || 'landscape';
+  const orientation = inv.letterheadOrientation || 'portrait';
   const customWidth = inv.letterheadWidth || 297;
   const customHeight = inv.letterheadHeight || 210;
   

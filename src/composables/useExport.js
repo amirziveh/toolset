@@ -56,7 +56,7 @@ export function useExport() {
   const getPageDimensions = (inv) => {
     const settings = {
       letterheadSize: inv?.letterheadSize || 'A4',
-      letterheadOrientation: inv?.letterheadOrientation || 'landscape',
+      letterheadOrientation: inv?.letterheadOrientation || 'portrait',
       letterheadWidth: inv?.letterheadWidth || 297,
       letterheadHeight: inv?.letterheadHeight || 210
     };
@@ -184,7 +184,7 @@ export function useExport() {
 
       // Determine PDF format and orientation
       const size = inv?.letterheadSize || 'A4';
-      const orientation = inv?.letterheadOrientation || 'landscape';
+      const orientation = inv?.letterheadOrientation || 'portrait';
       
       const pdf = new jsPDF({
         unit: 'mm',

@@ -41,7 +41,7 @@ export function mmToPx(mm) {
  */
 export function getLetterheadDimensions(settings) {
   const size = settings?.letterheadSize || 'A4';
-  const orientation = settings?.letterheadOrientation || 'landscape';
+  const orientation = settings?.letterheadOrientation || 'portrait';
   const customWidth = settings?.letterheadWidth || 297;
   const customHeight = settings?.letterheadHeight || 210;
   
@@ -361,8 +361,8 @@ function generateItemsHtml(inv) {
         <td style="text-align:center;width:8%">${escHtml(item.unit)}</td>
         <td style="text-align:center;width:10%">${formatNum(item.unitPrice)}</td>
         <td style="text-align:center;width:10%">${discText}</td>
-        ${inv.vatEnabled ? `<td style="text-align:center;font-weight:700;width:10%">${formatCurrency(itemTax, currency)}</td>` : ''}
-        <td style="text-align:center;font-weight:700;width:10%">${formatCurrency(itemTotal, currency)}</td>
+        ${inv.vatEnabled ? `<td style="text-align:center;font-weight:700;width:10%">${formatNum(itemTax)}</td>` : ''}
+        <td style="text-align:center;font-weight:700;width:10%">${formatNum(itemTotal)}</td>
       </tr>
     `;
   });
@@ -435,7 +435,7 @@ function generateItemsFooter(inv) {
       <tr style="background:#f3f4f6;font-weight:bold">
         <td colspan="6" style="text-align:right;padding:8px;font-size:12px;color:#374151">جمع کل اقلام</td>
         ${taxCol}
-        <td style="text-align:center;padding:8px;font-size:12px;color:#374151">${formatCurrency(grandTotal - itemsDiscount, currency)}</td>
+        <td style="text-align:center;padding:8px;font-size:12px;color:#374151">${formatNum(grandTotal - itemsDiscount)}</td>
       </tr>
     </tfoot>
   `;
@@ -641,7 +641,7 @@ export function generateInvoiceHTML(inv) {
       <thead>
         <tr style="background:${sectionHeaderBg}">
           <th style="width:4%;text-align:center;background:${sectionHeaderBg}">ردیف</th>
-          <th style="width:35%;background:${sectionHeaderBg}">شرح کالا/خدمات</th>
+          <th style="width:35%;text-align:center;background:${sectionHeaderBg}">شرح کالا/خدمات</th>
           <th style="width:10%;text-align:center;background:${sectionHeaderBg}">مقدار</th>
           <th style="width:8%;text-align:center;background:${sectionHeaderBg}">واحد</th>
           <th style="width:10%;text-align:center;background:${sectionHeaderBg}">مبلغ واحد (ریال)</th>
@@ -694,7 +694,7 @@ export function generateInvoiceHTML(inv) {
  */
 function getPageRule(letterheadSettings = null) {
   const size = letterheadSettings?.letterheadSize || 'A4';
-  const orientation = letterheadSettings?.letterheadOrientation || 'landscape';
+  const orientation = letterheadSettings?.letterheadOrientation || 'portrait';
   
   // Map size names to CSS size values
   const sizeMap = {
