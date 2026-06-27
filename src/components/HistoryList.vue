@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue';
 import { useInvoiceStore } from '@/stores/invoice';
 import { formatCurrency, formatNum, currencySymbols } from '@/utils/number-format';
+import { exportInvoices, importInvoices } from '@/composables/useLocalStorage';
 
 const emit = defineEmits(['load-invoice', 'request-delete']);
 
@@ -64,6 +65,45 @@ function duplicateInvoice(id) {
 function requestDelete(id) {
   emit('request-delete', id);
 }
+
+async function handleImport(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  try {
+    const data = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const parsed = JSON.parse(e.target.result);
+          if (!Array.isArray(parsed)) throw new Error('Invalid format');
+          resolve(parsed);
+        } catch (err) {
+          reject(err);
+        }
+      };
+      reader.onerror = () => reject(new Error('Failed to read file'));
+      reader.readAsText(file);
+    });
+    let count = 0;
+    data.forEach(inv => {
+      if (inv.id && inv.invoiceNumber) {
+        if (!store.savedInvoices.find(s => s.id === inv.id)) {
+          store.savedInvoices.push(inv);
+          count++;
+        }
+      }
+    });
+    store.saveInvoicesToStorage();
+    if (count > 0) {
+      alert(`${count} پیش‌فاکتور با موفقیت وارد شد`);
+    } else {
+      alert('هیچ پیش‌فاکتور جدیدی یافت نشد');
+    }
+  } catch (e) {
+    alert('خطا در وارد کردن فایل: ' + e.message);
+  }
+  event.target.value = '';
+}
 </script>
 
 <template>
@@ -71,7 +111,7 @@ function requestDelete(id) {
     <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
       <h2 class="font-extrabold text-lg">پیش‌فاکتورهای ذخیره‌شده</h2>
       <div class="flex gap-2">
-        <button @click="store.exportToJSON()" class="btn btn-secondary btn-sm">
+        <button @click="exportInvoices(store.savedInvoices)" class="btn btn-secondary btn-sm">
           <i class="fa-solid fa-download"></i> خروجی
         </button>
         <label class="btn btn-secondary btn-sm cursor-pointer">
@@ -80,7 +120,7 @@ function requestDelete(id) {
             type="file"
             accept=".json"
             class="hidden"
-            @change="store.importFromJSON($event)"
+            @change="handleImport($event)"
           >
         </label>
       </div>
