@@ -109,16 +109,48 @@ function startResize(e, key) {
   e.stopPropagation();
   const th = e.currentTarget.closest('th');
   if (!th) return;
+  const table = th.closest('.overflow-x-auto');
+  const containerW = table ? table.clientWidth : window.innerWidth;
   const startW = th.offsetWidth;
   const startX = e.clientX;
+  // Snapshot all columns' current rendered widths
+  const ths = table?.querySelectorAll('th') || [];
+  const snapshot = {};
+  ths.forEach((el, i) => {
+    const k = columns.value[i]?.key;
+    if (k) snapshot[k] = el.offsetWidth;
+  });
   resizing.value = key;
   function doResize(ev) {
     if (!resizing.value) return;
     const diff = ev.clientX - startX;
     const col = defaultColumns.find(c => c.key === key);
     const minW = col?.minWidth || 40;
-    const newW = Math.max(startW + diff, minW);
-    colWidths.value = { ...colWidths.value, [key]: newW };
+    const newW = Math.max(minW, startW + diff);
+    // Calculate how much other columns need to shrink to stay within container
+    const others = columns.value.filter(c => c.key !== key);
+    const othersTotal = others.reduce((s, c) => s + (snapshot[c.key] || 0), 0);
+    const pad = 16;
+    const maxW = containerW - pad;
+    const overflow = (newW + othersTotal) - maxW;
+    if (overflow > 0) {
+      // Shrink other columns proportionally
+      const newOthers = {};
+      let othersToShrink = othersTotal;
+      others.forEach((c) => {
+        const cur = snapshot[c.key] || 0;
+        const cDef = defaultColumns.find(d => d.key === c.key);
+        const cMin = cDef?.minWidth || 40;
+        const share = cur / othersTotal;
+        const reduced = Math.max(cMin, cur - overflow * share);
+        newOthers[c.key] = reduced;
+        othersToShrink -= reduced;
+      });
+      const adjusted = Math.max(minW, maxW - others.reduce((s, c) => s + (newOthers[c.key] || snapshot[c.key]), 0));
+      colWidths.value = { ...snapshot, ...newOthers, [key]: Math.min(newW, adjusted) };
+    } else {
+      colWidths.value = { ...snapshot, [key]: newW };
+    }
   }
   function stopResize() {
     resizing.value = null;
