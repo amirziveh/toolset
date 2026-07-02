@@ -41,7 +41,7 @@ onMounted(async () => {
 });
 
 function navigateToProforma() {
-  router.push('/proforma');
+  router.push('/proforma?tab=history');
 }
 </script>
 

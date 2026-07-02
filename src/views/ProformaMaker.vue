@@ -1,6 +1,6 @@
 <script setup>
 import { ref, onMounted, watch, nextTick } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRouter, useRoute } from 'vue-router';
 import { useInvoiceStore } from '../stores/invoice';
 import { getTodayShamsi, getCurrentTime, addShamsiDays } from '../utils/shamsi-date';
 import { formatCurrency, formatNum, formatToman, amountToWords, safeNum, currencySymbols } from '../utils/number-format';
@@ -18,11 +18,12 @@ import InvoicePreview from '../components/InvoicePreview.vue';
 import HistoryList from '../components/HistoryList.vue';
 
 const router = useRouter();
+const route = useRoute();
 const store = useInvoiceStore();
 const { exportImage, exportPDF, printInvoice } = useExport();
 
 // State
-const currentTab = ref('form');
+const currentTab = ref(route.query.tab === 'history' ? 'history' : 'form');
 const deleteTargetId = ref(null);
 const showDeleteModal = ref(false);
 const previewRef = ref(null);

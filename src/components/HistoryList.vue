@@ -4,6 +4,23 @@ import { useInvoiceStore } from '@/stores/invoice';
 import { formatCurrency, formatNum, currencySymbols } from '@/utils/number-format';
 import { exportInvoices, importInvoices } from '@/composables/useLocalStorage';
 
+const sortKey = ref('');
+const sortOrder = ref(1); // 1 = asc, -1 = desc
+
+function setSort(key) {
+  if (sortKey.value === key) {
+    sortOrder.value *= -1;
+  } else {
+    sortKey.value = key;
+    sortOrder.value = 1;
+  }
+}
+
+function sortIcon(key) {
+  if (sortKey.value !== key) return 'fa-solid fa-sort';
+  return sortOrder.value === 1 ? 'fa-solid fa-sort-up' : 'fa-solid fa-sort-down';
+}
+
 const emit = defineEmits(['load-invoice', 'request-delete']);
 
 const store = useInvoiceStore();
@@ -14,9 +31,34 @@ function getTotalQty(items) {
   return items.reduce((s, it) => s + Number(it.quantity || 0), 0);
 }
 
+function getSortValue(inv, key) {
+  switch (key) {
+    case 'invoiceNumber': return (inv.invoiceNumber || '').toLowerCase();
+    case 'createdAt': return inv.createdAt || 0;
+    case 'seller': return (inv.seller?.name || '').toLowerCase();
+    case 'buyer': return (inv.buyer?.name || '').toLowerCase();
+    case 'qty': return getTotalQty(inv.items);
+    case 'total': return (inv.items || []).reduce((s, it) => s + Number(it.amount || 0), 0);
+    default: return '';
+  }
+}
+
+const sortedInvoices = computed(() => {
+  let list = [...store.savedInvoices];
+  if (sortKey.value) {
+    list.sort((a, b) => {
+      const va = getSortValue(a, sortKey.value);
+      const vb = getSortValue(b, sortKey.value);
+      if (typeof va === 'number') return (va - vb) * sortOrder.value;
+      return String(va).localeCompare(String(vb)) * sortOrder.value;
+    });
+  }
+  return list;
+});
+
 const filteredInvoices = computed(() => {
   const query = searchQuery.value.toLowerCase();
-  return store.savedInvoices.filter(inv => {
+  return sortedInvoices.value.filter(inv => {
     const num = (inv.invoiceNumber || '').toLowerCase();
     const buyer = (inv.buyer?.name || '').toLowerCase();
     const seller = (inv.seller?.name || '').toLowerCase();
@@ -146,13 +188,25 @@ async function handleImport(event) {
         <thead>
           <tr style="background:var(--input-bg);border-bottom:2px solid var(--card-border)">
             <th class="px-2 py-2.5 text-right font-extrabold">#</th>
-            <th class="px-2 py-2.5 text-right font-extrabold">شماره</th>
-            <th class="px-2 py-2.5 text-right font-extrabold">تاریخ</th>
-            <th class="px-2 py-2.5 text-right font-extrabold">فروشنده</th>
-            <th class="px-2 py-2.5 text-right font-extrabold">خریدار</th>
+            <th class="px-2 py-2.5 text-right font-extrabold sortable-th" @click="setSort('invoiceNumber')">
+              شماره <i :class="sortIcon('invoiceNumber')"></i>
+            </th>
+            <th class="px-2 py-2.5 text-right font-extrabold sortable-th" @click="setSort('createdAt')">
+              تاریخ <i :class="sortIcon('createdAt')"></i>
+            </th>
+            <th class="px-2 py-2.5 text-right font-extrabold sortable-th" @click="setSort('seller')">
+              فروشنده <i :class="sortIcon('seller')"></i>
+            </th>
+            <th class="px-2 py-2.5 text-right font-extrabold sortable-th" @click="setSort('buyer')">
+              خریدار <i :class="sortIcon('buyer')"></i>
+            </th>
             <th class="px-2 py-2.5 text-right font-extrabold">کالا/خدمات</th>
-            <th class="px-2 py-2.5 text-center font-extrabold">تعداد</th>
-            <th class="px-2 py-2.5 text-left font-extrabold">مبلغ کل</th>
+            <th class="px-2 py-2.5 text-center font-extrabold sortable-th" @click="setSort('qty')">
+              تعداد <i :class="sortIcon('qty')"></i>
+            </th>
+            <th class="px-2 py-2.5 text-left font-extrabold sortable-th" @click="setSort('total')">
+              مبلغ کل <i :class="sortIcon('total')"></i>
+            </th>
             <th class="px-2 py-2.5 text-center font-extrabold">عملیات</th>
           </tr>
         </thead>
@@ -210,5 +264,17 @@ async function handleImport(event) {
 .hist-table th,
 .hist-table td {
   border: 1px solid var(--card-border);
+}
+.sortable-th {
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+.sortable-th:hover {
+  opacity: 0.8;
+}
+.sortable-th i {
+  margin-right: 4px;
+  font-size: 0.7rem;
 }
 </style>
