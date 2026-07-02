@@ -1,11 +1,46 @@
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useInvoiceStore } from '@/stores/invoice';
 import { formatCurrency, formatNum, currencySymbols } from '@/utils/number-format';
 import { exportInvoices, importInvoices } from '@/composables/useLocalStorage';
 
+const STORAGE_KEY = 'history_column_order';
+
 const sortKey = ref('');
-const sortOrder = ref(1); // 1 = asc, -1 = desc
+const sortOrder = ref(1);
+const dragIndex = ref(null);
+const dropIndex = ref(null);
+
+const defaultColumns = [
+  { key: 'index', label: '#', sortable: false, thClass: 'px-2 py-2.5 text-right font-extrabold', tdClass: 'px-2 py-2.5 text-right' },
+  { key: 'invoiceNumber', label: 'شماره', sortable: true, thClass: 'px-2 py-2.5 text-right font-extrabold sortable-th', tdClass: 'px-2 py-2.5 text-right font-semibold whitespace-nowrap' },
+  { key: 'createdAt', label: 'تاریخ', sortable: true, thClass: 'px-2 py-2.5 text-right font-extrabold sortable-th', tdClass: 'px-2 py-2.5 text-right whitespace-nowrap' },
+  { key: 'seller', label: 'فروشنده', sortable: true, thClass: 'px-2 py-2.5 text-right font-extrabold sortable-th', tdClass: 'px-2 py-2.5 text-right truncate max-w-[100px]' },
+  { key: 'buyer', label: 'خریدار', sortable: true, thClass: 'px-2 py-2.5 text-right font-extrabold sortable-th', tdClass: 'px-2 py-2.5 text-right truncate max-w-[100px]' },
+  { key: 'items', label: 'کالا/خدمات', sortable: false, thClass: 'px-2 py-2.5 text-right font-extrabold', tdClass: 'px-2 py-2.5 text-right truncate max-w-[150px]' },
+  { key: 'qty', label: 'تعداد', sortable: true, thClass: 'px-2 py-2.5 text-center font-extrabold sortable-th', tdClass: 'px-2 py-2.5 text-center whitespace-nowrap' },
+  { key: 'total', label: 'مبلغ کل', sortable: true, thClass: 'px-2 py-2.5 text-left font-extrabold sortable-th', tdClass: 'px-2 py-2.5 text-left whitespace-nowrap' },
+  { key: 'actions', label: 'عملیات', sortable: false, thClass: 'px-2 py-2.5 text-center font-extrabold', tdClass: 'px-2 py-2.5 text-center' },
+];
+
+const columns = ref([...defaultColumns]);
+
+onMounted(() => {
+  const saved = localStorage.getItem(STORAGE_KEY);
+  if (saved) {
+    try {
+      const parsed = JSON.parse(saved);
+      const validKeys = defaultColumns.map(c => c.key);
+      if (Array.isArray(parsed) && parsed.length === validKeys.length && parsed.every(k => validKeys.includes(k))) {
+        columns.value = parsed.map(k => defaultColumns.find(c => c.key === k));
+      }
+    } catch (_) {}
+  }
+});
+
+function saveColumnOrder() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(columns.value.map(c => c.key)));
+}
 
 function setSort(key) {
   if (sortKey.value === key) {
@@ -19,6 +54,42 @@ function setSort(key) {
 function sortIcon(key) {
   if (sortKey.value !== key) return 'fa-solid fa-sort';
   return sortOrder.value === 1 ? 'fa-solid fa-sort-up' : 'fa-solid fa-sort-down';
+}
+
+function onDragStart(e, idx) {
+  dragIndex.value = idx;
+  e.dataTransfer.effectAllowed = 'move';
+  e.dataTransfer.setData('text/plain', idx);
+}
+
+function onDragOver(e, idx) {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  dropIndex.value = idx;
+}
+
+function onDragLeave() {
+  dropIndex.value = null;
+}
+
+function onDrop(e, idx) {
+  e.preventDefault();
+  const from = dragIndex.value;
+  const to = idx;
+  if (from !== null && to !== null && from !== to) {
+    const arr = [...columns.value];
+    const [moved] = arr.splice(from, 1);
+    arr.splice(to, 0, moved);
+    columns.value = arr;
+    saveColumnOrder();
+  }
+  dragIndex.value = null;
+  dropIndex.value = null;
+}
+
+function onDragEnd() {
+  dragIndex.value = null;
+  dropIndex.value = null;
 }
 
 const emit = defineEmits(['load-invoice', 'request-delete']);
@@ -79,7 +150,7 @@ function getItemsSummary(items) {
     .join('، ');
 }
 
-function calcTotal(items, currency) {
+function calcTotal(items) {
   if (!items) return formatNum(0);
   const total = items.reduce((s, it) => s + Number(it.amount || 0), 0);
   return formatNum(total);
@@ -187,27 +258,22 @@ async function handleImport(event) {
       <table class="w-full text-sm hist-table" style="border-collapse:collapse">
         <thead>
           <tr style="background:var(--input-bg);border-bottom:2px solid var(--card-border)">
-            <th class="px-2 py-2.5 text-right font-extrabold">#</th>
-            <th class="px-2 py-2.5 text-right font-extrabold sortable-th" @click="setSort('invoiceNumber')">
-              شماره <i :class="sortIcon('invoiceNumber')"></i>
+            <th
+              v-for="(col, ci) in columns"
+              :key="col.key"
+              :class="[col.thClass, { 'drag-over': dropIndex === ci && dragIndex !== ci }]"
+              :draggable="true"
+              @dragstart="onDragStart($event, ci)"
+              @dragover="onDragOver($event, ci)"
+              @dragleave="onDragLeave"
+              @drop="onDrop($event, ci)"
+              @dragend="onDragEnd"
+              @click="col.sortable && setSort(col.key)"
+            >
+              <span class="drag-handle"><i class="fa-solid fa-grip-lines"></i></span>
+              {{ col.label }}
+              <i v-if="col.sortable" :class="sortIcon(col.key)"></i>
             </th>
-            <th class="px-2 py-2.5 text-right font-extrabold sortable-th" @click="setSort('createdAt')">
-              تاریخ <i :class="sortIcon('createdAt')"></i>
-            </th>
-            <th class="px-2 py-2.5 text-right font-extrabold sortable-th" @click="setSort('seller')">
-              فروشنده <i :class="sortIcon('seller')"></i>
-            </th>
-            <th class="px-2 py-2.5 text-right font-extrabold sortable-th" @click="setSort('buyer')">
-              خریدار <i :class="sortIcon('buyer')"></i>
-            </th>
-            <th class="px-2 py-2.5 text-right font-extrabold">کالا/خدمات</th>
-            <th class="px-2 py-2.5 text-center font-extrabold sortable-th" @click="setSort('qty')">
-              تعداد <i :class="sortIcon('qty')"></i>
-            </th>
-            <th class="px-2 py-2.5 text-left font-extrabold sortable-th" @click="setSort('total')">
-              مبلغ کل <i :class="sortIcon('total')"></i>
-            </th>
-            <th class="px-2 py-2.5 text-center font-extrabold">عملیات</th>
           </tr>
         </thead>
         <tbody>
@@ -217,34 +283,30 @@ async function handleImport(event) {
             style="border-bottom:1px solid var(--card-border)"
             class="hover-row"
           >
-            <td class="px-2 py-2.5 text-right" style="color:var(--muted)">{{ i + 1 }}</td>
-            <td class="px-2 py-2.5 text-right font-semibold whitespace-nowrap" style="color:var(--accent)">
-              {{ inv.invoiceNumber }}
-            </td>
-            <td class="px-2 py-2.5 text-right whitespace-nowrap">{{ formatDate(inv.createdAt) }}</td>
-            <td class="px-2 py-2.5 text-right truncate max-w-[100px]">{{ inv.seller?.name || '—' }}</td>
-            <td class="px-2 py-2.5 text-right truncate max-w-[100px]">{{ inv.buyer?.name || '—' }}</td>
-            <td class="px-2 py-2.5 text-right truncate max-w-[150px]" style="color:var(--muted)">
-              {{ getItemsSummary(inv.items) }}
-            </td>
-            <td class="px-2 py-2.5 text-center whitespace-nowrap">
-              {{ formatNum(getTotalQty(inv.items)) }}
-            </td>
-            <td class="px-2 py-2.5 text-left whitespace-nowrap">
-              {{ calcTotal(inv.items, inv.currency) }}
-            </td>
-            <td class="px-2 py-2.5 text-center">
-              <div class="flex gap-1 justify-center">
-                <button @click="loadInvoice(inv.id)" class="btn btn-primary btn-xs" title="بارگذاری">
-                  <i class="fa-solid fa-folder-open"></i>
-                </button>
-                <button @click="duplicateInvoice(inv.id)" class="btn btn-secondary btn-xs" title="کپی">
-                  <i class="fa-solid fa-copy"></i>
-                </button>
-                <button @click="requestDelete(inv.id)" class="btn btn-danger btn-xs" title="حذف">
-                  <i class="fa-solid fa-trash-can"></i>
-                </button>
-              </div>
+            <td v-for="col in columns" :key="col.key" :class="col.tdClass">
+              <template v-if="col.key === 'index'">{{ i + 1 }}</template>
+              <template v-else-if="col.key === 'invoiceNumber'">
+                <span style="color:var(--accent)">{{ inv.invoiceNumber }}</span>
+              </template>
+              <template v-else-if="col.key === 'createdAt'">{{ formatDate(inv.createdAt) }}</template>
+              <template v-else-if="col.key === 'seller'">{{ inv.seller?.name || '—' }}</template>
+              <template v-else-if="col.key === 'buyer'">{{ inv.buyer?.name || '—' }}</template>
+              <template v-else-if="col.key === 'items'"><span style="color:var(--muted)">{{ getItemsSummary(inv.items) }}</span></template>
+              <template v-else-if="col.key === 'qty'">{{ formatNum(getTotalQty(inv.items)) }}</template>
+              <template v-else-if="col.key === 'total'">{{ calcTotal(inv.items) }}</template>
+              <template v-else-if="col.key === 'actions'">
+                <div class="flex gap-1 justify-center">
+                  <button @click="loadInvoice(inv.id)" class="btn btn-primary btn-xs" title="بارگذاری">
+                    <i class="fa-solid fa-folder-open"></i>
+                  </button>
+                  <button @click="duplicateInvoice(inv.id)" class="btn btn-secondary btn-xs" title="کپی">
+                    <i class="fa-solid fa-copy"></i>
+                  </button>
+                  <button @click="requestDelete(inv.id)" class="btn btn-danger btn-xs" title="حذف">
+                    <i class="fa-solid fa-trash-can"></i>
+                  </button>
+                </div>
+              </template>
             </td>
           </tr>
         </tbody>
@@ -276,5 +338,25 @@ async function handleImport(event) {
 .sortable-th i {
   margin-right: 4px;
   font-size: 0.7rem;
+}
+.drag-handle {
+  cursor: grab;
+  margin-left: 6px;
+  opacity: 0.4;
+  font-size: 0.75rem;
+}
+th:hover .drag-handle {
+  opacity: 0.8;
+}
+.drag-over {
+  outline: 2px dashed var(--accent);
+  outline-offset: -2px;
+  background: var(--accent-light);
+}
+th[draggable="true"] {
+  cursor: grab;
+}
+th[draggable="true"]:active {
+  cursor: grabbing;
 }
 </style>
