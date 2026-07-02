@@ -159,7 +159,29 @@ function getSortValue(inv, key) {
     case 'seller': return (inv.seller?.name || '').toLowerCase();
     case 'buyer': return (inv.buyer?.name || '').toLowerCase();
     case 'qty': return getTotalQty(inv.items);
-    case 'total': return (inv.items || []).reduce((s, it) => s + Number(it.amount || 0), 0);
+    case 'total': {
+      const items = inv.items || [];
+      const vatEnabled = inv.vatEnabled !== false;
+      const vatPct = safeNum(inv.vatPercent) || 10;
+      const priceIncludesVat = !!inv.priceIncludesVat;
+      return items.reduce((sum, it) => {
+        const qty = safeNum(it.quantity);
+        const price = safeNum(it.unitPrice);
+        const gross = qty * price;
+        const discPct = safeNum(it.discountPercent);
+        const discAmt = safeNum(it.discountAmount);
+        let disc = 0;
+        if (discPct > 0) disc = price * discPct / 100 * qty;
+        else if (discAmt > 0) disc = discAmt * qty;
+        const afterDisc = gross - disc;
+        let tax = 0;
+        if (vatEnabled) {
+          if (priceIncludesVat) tax = Math.round(afterDisc * vatPct / (100 + vatPct));
+          else tax = Math.round(afterDisc * vatPct / 100);
+        }
+        return sum + afterDisc + tax;
+      }, 0);
+    }
     default: return '';
   }
 }
@@ -200,8 +222,12 @@ function getItemsSummary(items) {
     .join('، ');
 }
 
-function calcTotal(items) {
+function calcTotal(inv) {
+  const items = inv?.items;
   if (!items || items.length === 0) return formatNum(0);
+  const vatEnabled = inv.vatEnabled !== false;
+  const vatPct = safeNum(inv.vatPercent) || 10;
+  const priceIncludesVat = !!inv.priceIncludesVat;
   const total = items.reduce((sum, it) => {
     const qty = safeNum(it.quantity);
     const price = safeNum(it.unitPrice);
@@ -211,7 +237,16 @@ function calcTotal(items) {
     let disc = 0;
     if (discPct > 0) disc = price * discPct / 100 * qty;
     else if (discAmt > 0) disc = discAmt * qty;
-    return sum + gross - disc;
+    const afterDisc = gross - disc;
+    let tax = 0;
+    if (vatEnabled) {
+      if (priceIncludesVat) {
+        tax = Math.round(afterDisc * vatPct / (100 + vatPct));
+      } else {
+        tax = Math.round(afterDisc * vatPct / 100);
+      }
+    }
+    return sum + afterDisc + tax;
   }, 0);
   return formatNum(total);
 }
@@ -355,7 +390,7 @@ async function handleImport(event) {
               <template v-else-if="col.key === 'buyer'">{{ inv.buyer?.name || '—' }}</template>
               <template v-else-if="col.key === 'items'"><span style="color:var(--muted)">{{ getItemsSummary(inv.items) }}</span></template>
               <template v-else-if="col.key === 'qty'">{{ formatNum(getTotalQty(inv.items)) }}</template>
-              <template v-else-if="col.key === 'total'">{{ calcTotal(inv.items) }}</template>
+              <template v-else-if="col.key === 'total'">{{ calcTotal(inv) }}</template>
               <template v-else-if="col.key === 'actions'">
                 <div class="flex gap-1 justify-center">
                   <button @click="loadInvoice(inv.id)" class="btn btn-primary btn-xs" title="بارگذاری">
