@@ -1,13 +1,11 @@
 import { createRouter, createWebHistory } from 'vue-router';
-import WelcomeView from '../views/WelcomeView.vue';
 import DashboardView from '../views/DashboardView.vue';
 import ProformaMaker from '../views/ProformaMaker.vue';
 import { _x, _checking, checkStoredLicense } from '../composables/useLicense.js';
 import _PUB from '../utils/publicKey.js';
 
 const routes = [
-  { path: '/', name: 'welcome', component: WelcomeView },
-  { path: '/dashboard', name: 'dashboard', component: DashboardView },
+  { path: '/', name: 'dashboard', component: DashboardView },
   { path: '/proforma', name: 'proforma', component: ProformaMaker },
 ];
 
@@ -47,14 +45,14 @@ router.beforeEach(async (to, from) => {
   // Wait for license check to complete before making a decision
   await waitForLicenseCheck();
 
-  // Welcome page is public — no license needed
-  if (to.path === '/') {
-    return true;
-  }
-
-  // No valid license — redirect to welcome (shows modal via App.vue)
+  // No valid license — redirect to root (shows modal via App.vue)
   // Store the intended route for redirection after license verification
   if (!_x.value) {
+    // If already on the root path, don't redirect again (prevents infinite loop)
+    if (to.path === '/') {
+      return true;
+    }
+    // Return an object with the redirect path and state containing the intended route
     return {
       path: '/',
       state: { intendedRoute: to.fullPath },

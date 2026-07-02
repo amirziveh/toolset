@@ -113,7 +113,7 @@ function loadInvoice(id) {
 
 // Navigate back to dashboard
 function goToDashboard() {
-  router.push('/dashboard');
+  router.push('/');
 }
 </script>
 

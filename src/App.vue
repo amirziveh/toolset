@@ -30,7 +30,7 @@ function openLicenseModal(route = null) {
 function onLicenseVerified() {
   showModal.value = false;
   // Navigate to the originally intended route, or dashboard as fallback
-  const redirectPath = intendedRoute.value?.path || '/dashboard';
+  const redirectPath = intendedRoute.value?.path || '/';
   router.push(redirectPath);
   intendedRoute.value = null;
 }
