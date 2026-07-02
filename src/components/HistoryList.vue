@@ -107,9 +107,11 @@ function onDragEnd() {
 function startResize(e, key) {
   e.preventDefault();
   e.stopPropagation();
-  resizing.value = key;
+  const th = e.currentTarget.closest('th');
+  if (!th) return;
+  const startW = th.offsetWidth;
   const startX = e.clientX;
-  const startW = colWidths.value[key] || 0;
+  resizing.value = key;
   function doResize(ev) {
     if (!resizing.value) return;
     const diff = ev.clientX - startX;
@@ -413,8 +415,8 @@ th[draggable="true"]:active {
   position: absolute;
   top: 0;
   bottom: 0;
-  left: 0;
-  width: 5px;
+  right: 0;
+  width: 8px;
   cursor: col-resize;
   z-index: 1;
 }
