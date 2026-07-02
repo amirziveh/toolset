@@ -4,29 +4,32 @@ import { useInvoiceStore } from '@/stores/invoice';
 import { formatCurrency, formatNum, currencySymbols } from '@/utils/number-format';
 import { exportInvoices, importInvoices } from '@/composables/useLocalStorage';
 
-const STORAGE_KEY = 'history_column_order';
+const STORAGE_ORDER_KEY = 'history_column_order';
+const STORAGE_WIDTH_KEY = 'history_column_widths';
 
 const sortKey = ref('');
 const sortOrder = ref(1);
 const dragIndex = ref(null);
 const dropIndex = ref(null);
+const resizing = ref(null);
+const colWidths = ref({});
 
 const defaultColumns = [
-  { key: 'index', label: '#', sortable: false, thClass: 'px-2 py-2.5 text-right font-extrabold', tdClass: 'px-2 py-2.5 text-right' },
-  { key: 'invoiceNumber', label: 'شماره', sortable: true, thClass: 'px-2 py-2.5 text-right font-extrabold sortable-th', tdClass: 'px-2 py-2.5 text-right font-semibold whitespace-nowrap' },
-  { key: 'createdAt', label: 'تاریخ', sortable: true, thClass: 'px-2 py-2.5 text-right font-extrabold sortable-th', tdClass: 'px-2 py-2.5 text-right whitespace-nowrap' },
-  { key: 'seller', label: 'فروشنده', sortable: true, thClass: 'px-2 py-2.5 text-right font-extrabold sortable-th', tdClass: 'px-2 py-2.5 text-right truncate max-w-[100px]' },
-  { key: 'buyer', label: 'خریدار', sortable: true, thClass: 'px-2 py-2.5 text-right font-extrabold sortable-th', tdClass: 'px-2 py-2.5 text-right truncate max-w-[100px]' },
-  { key: 'items', label: 'کالا/خدمات', sortable: false, thClass: 'px-2 py-2.5 text-right font-extrabold', tdClass: 'px-2 py-2.5 text-right truncate max-w-[150px]' },
-  { key: 'qty', label: 'تعداد', sortable: true, thClass: 'px-2 py-2.5 text-center font-extrabold sortable-th', tdClass: 'px-2 py-2.5 text-center whitespace-nowrap' },
-  { key: 'total', label: 'مبلغ کل', sortable: true, thClass: 'px-2 py-2.5 text-left font-extrabold sortable-th', tdClass: 'px-2 py-2.5 text-left whitespace-nowrap' },
-  { key: 'actions', label: 'عملیات', sortable: false, thClass: 'px-2 py-2.5 text-center font-extrabold', tdClass: 'px-2 py-2.5 text-center' },
+  { key: 'index', label: '#', sortable: false, thClass: 'px-2 py-2.5 text-right font-extrabold', tdClass: 'px-2 py-2.5 text-right', minWidth: 40 },
+  { key: 'invoiceNumber', label: 'شماره', sortable: true, thClass: 'px-2 py-2.5 text-right font-extrabold sortable-th', tdClass: 'px-2 py-2.5 text-right font-semibold whitespace-nowrap', minWidth: 80 },
+  { key: 'createdAt', label: 'تاریخ', sortable: true, thClass: 'px-2 py-2.5 text-right font-extrabold sortable-th', tdClass: 'px-2 py-2.5 text-right whitespace-nowrap', minWidth: 80 },
+  { key: 'seller', label: 'فروشنده', sortable: true, thClass: 'px-2 py-2.5 text-right font-extrabold sortable-th', tdClass: 'px-2 py-2.5 text-right truncate', minWidth: 80 },
+  { key: 'buyer', label: 'خریدار', sortable: true, thClass: 'px-2 py-2.5 text-right font-extrabold sortable-th', tdClass: 'px-2 py-2.5 text-right truncate', minWidth: 80 },
+  { key: 'items', label: 'کالا/خدمات', sortable: false, thClass: 'px-2 py-2.5 text-right font-extrabold', tdClass: 'px-2 py-2.5 text-right truncate', minWidth: 100 },
+  { key: 'qty', label: 'تعداد', sortable: true, thClass: 'px-2 py-2.5 text-center font-extrabold sortable-th', tdClass: 'px-2 py-2.5 text-center whitespace-nowrap', minWidth: 60 },
+  { key: 'total', label: 'مبلغ کل', sortable: true, thClass: 'px-2 py-2.5 text-left font-extrabold sortable-th', tdClass: 'px-2 py-2.5 text-left whitespace-nowrap', minWidth: 90 },
+  { key: 'actions', label: 'عملیات', sortable: false, thClass: 'px-2 py-2.5 text-center font-extrabold', tdClass: 'px-2 py-2.5 text-center', minWidth: 100 },
 ];
 
 const columns = ref([...defaultColumns]);
 
 onMounted(() => {
-  const saved = localStorage.getItem(STORAGE_KEY);
+  const saved = localStorage.getItem(STORAGE_ORDER_KEY);
   if (saved) {
     try {
       const parsed = JSON.parse(saved);
@@ -36,10 +39,19 @@ onMounted(() => {
       }
     } catch (_) {}
   }
+  const savedWidths = localStorage.getItem(STORAGE_WIDTH_KEY);
+  if (savedWidths) {
+    try {
+      const parsed = JSON.parse(savedWidths);
+      if (typeof parsed === 'object' && parsed !== null) {
+        colWidths.value = parsed;
+      }
+    } catch (_) {}
+  }
 });
 
 function saveColumnOrder() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(columns.value.map(c => c.key)));
+  localStorage.setItem(STORAGE_ORDER_KEY, JSON.stringify(columns.value.map(c => c.key)));
 }
 
 function setSort(key) {
@@ -90,6 +102,42 @@ function onDrop(e, idx) {
 function onDragEnd() {
   dragIndex.value = null;
   dropIndex.value = null;
+}
+
+function startResize(e, key) {
+  e.preventDefault();
+  e.stopPropagation();
+  resizing.value = key;
+  const startX = e.clientX;
+  const startW = colWidths.value[key] || 0;
+  function doResize(ev) {
+    if (!resizing.value) return;
+    const diff = ev.clientX - startX;
+    const col = defaultColumns.find(c => c.key === key);
+    const minW = col?.minWidth || 40;
+    const newW = Math.max(startW + diff, minW);
+    colWidths.value = { ...colWidths.value, [key]: newW };
+  }
+  function stopResize() {
+    resizing.value = null;
+    localStorage.setItem(STORAGE_WIDTH_KEY, JSON.stringify(colWidths.value));
+    document.removeEventListener('mousemove', doResize);
+    document.removeEventListener('mouseup', stopResize);
+  }
+  document.addEventListener('mousemove', doResize);
+  document.addEventListener('mouseup', stopResize);
+}
+
+function colStyle(key) {
+  const w = colWidths.value[key];
+  const col = defaultColumns.find(c => c.key === key);
+  if (w) {
+    return { width: w + 'px', minWidth: w + 'px', maxWidth: w + 'px' };
+  }
+  if (col?.minWidth) {
+    return { minWidth: col.minWidth + 'px' };
+  }
+  return {};
 }
 
 const emit = defineEmits(['load-invoice', 'request-delete']);
@@ -261,7 +309,8 @@ async function handleImport(event) {
             <th
               v-for="(col, ci) in columns"
               :key="col.key"
-              :class="[col.thClass, { 'drag-over': dropIndex === ci && dragIndex !== ci }]"
+              :class="[col.thClass, { 'drag-over': dropIndex === ci && dragIndex !== ci, 'resizing': resizing === col.key }]"
+              :style="colStyle(col.key)"
               :draggable="true"
               @dragstart="onDragStart($event, ci)"
               @dragover="onDragOver($event, ci)"
@@ -273,6 +322,7 @@ async function handleImport(event) {
               <span class="drag-handle"><i class="fa-solid fa-grip-lines"></i></span>
               {{ col.label }}
               <i v-if="col.sortable" :class="sortIcon(col.key)"></i>
+              <span class="resize-handle" @mousedown="startResize($event, col.key)"></span>
             </th>
           </tr>
         </thead>
@@ -283,7 +333,7 @@ async function handleImport(event) {
             style="border-bottom:1px solid var(--card-border)"
             class="hover-row"
           >
-            <td v-for="col in columns" :key="col.key" :class="col.tdClass">
+            <td v-for="col in columns" :key="col.key" :class="col.tdClass" :style="colStyle(col.key)">
               <template v-if="col.key === 'index'">{{ i + 1 }}</template>
               <template v-else-if="col.key === 'invoiceNumber'">
                 <span style="color:var(--accent)">{{ inv.invoiceNumber }}</span>
@@ -358,5 +408,25 @@ th[draggable="true"] {
 }
 th[draggable="true"]:active {
   cursor: grabbing;
+}
+.resize-handle {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 5px;
+  cursor: col-resize;
+  z-index: 1;
+}
+.resize-handle:hover,
+th.resizing .resize-handle {
+  background: var(--accent);
+}
+th {
+  position: relative;
+  user-select: none;
+}
+th.resizing {
+  user-select: none;
 }
 </style>
