@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { useInvoiceStore } from '@/stores/invoice';
-import { formatCurrency, formatNum, currencySymbols } from '@/utils/number-format';
+import { formatCurrency, formatNum, currencySymbols, safeNum } from '@/utils/number-format';
 import { exportInvoices, importInvoices } from '@/composables/useLocalStorage';
 
 const STORAGE_ORDER_KEY = 'history_column_order';
@@ -201,8 +201,18 @@ function getItemsSummary(items) {
 }
 
 function calcTotal(items) {
-  if (!items) return formatNum(0);
-  const total = items.reduce((s, it) => s + Number(it.amount || 0), 0);
+  if (!items || items.length === 0) return formatNum(0);
+  const total = items.reduce((sum, it) => {
+    const qty = safeNum(it.quantity);
+    const price = safeNum(it.unitPrice);
+    const gross = qty * price;
+    const discPct = safeNum(it.discountPercent);
+    const discAmt = safeNum(it.discountAmount);
+    let disc = 0;
+    if (discPct > 0) disc = price * discPct / 100 * qty;
+    else if (discAmt > 0) disc = discAmt * qty;
+    return sum + gross - disc;
+  }, 0);
   return formatNum(total);
 }
 
